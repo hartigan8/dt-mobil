@@ -40,6 +40,20 @@ android {
 }
 
 dependencies {
+
+    // Support Libraries
+    implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
+
+    // Testing Dependencies
+    testImplementation ("junit:junit:4.13.2")
+    androidTestImplementation ("androidx.test.ext:junit:1.1.3")
+    androidTestImplementation ("androidx.test.espresso:espresso-core:3.4.0")
+
+    // SplashScreen compat library
+    implementation ("androidx.core:core-splashscreen:1.0.0")
+
+    // TUTORIAL DEPENDENCIES HERE
+    implementation ("androidx.health:health-connect-client:1.0.0-alpha03")
     implementation("androidx.health:health-services-client:1.1.0-alpha01")
     implementation("com.squareup.okhttp3:okhttp:4.12.0")
     implementation("androidx.core:core-ktx:1.9.0")
@@ -50,6 +64,6 @@ dependencies {
     testImplementation("junit:junit:4.13.2")
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
-    implementation ("androidx.health.connect:connect-client:1.1.0-alpha02")
+    implementation ("androidx.health:health-connect-client:1.0.0-alpha03")
 
 }
