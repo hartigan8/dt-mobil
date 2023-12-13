@@ -1,39 +1,9 @@
-/*
-* Copyright (c) 2022 Razeware LLC
-*
-* Permission is hereby granted, free of charge, to any person obtaining a copy
-* of this software and associated documentation files (the "Software"), to deal
-* in the Software without restriction, including without limitation the rights
-* to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-* copies of the Software, and to permit persons to whom the Software is
-* furnished to do so, subject to the following conditions:
-*
-* The above copyright notice and this permission notice shall be included in
-* all copies or substantial portions of the Software.
-*
-* Notwithstanding the foregoing, you may not use, copy, modify, merge, publish,
-* distribute, sublicense, create a derivative work, and/or sell copies of the
-* Software in any work that is designed, intended, or marketed for pedagogical or
-* instructional purposes related to programming, coding, application development,
-* or information technology.  Permission for such use, copying, modification,
-* merger, publication, distribution, sublicensing, creation of derivative works,
-* or sale is expressly withheld.
-*
-* This project and source code may use libraries or frameworks that are
-* released under various Open-Source licenses. Use of those libraries and
-* frameworks are governed by their own individual licenses.
-*
-* THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-* IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-* FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-* AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-* LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-* OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
-* THE SOFTWARE.
-*/
 
 package com.example.loginapp
 
+
+import java.net.HttpURLConnection
+import java.net.URL
 import android.os.Bundle
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
@@ -52,6 +22,7 @@ import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Energy
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import java.io.OutputStreamWriter
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
@@ -59,6 +30,11 @@ import java.time.temporal.ChronoUnit
 /**
  * Main Screen
  */
+
+
+/*Token işi
+        register ve login olduğunda token yolla bu tokenın anlamı ıd sen bunu header olarak tut
+* */
 class MainActivity : AppCompatActivity() {
 
     override fun onCreate(savedInstanceState: Bundle?) {
@@ -175,6 +151,7 @@ class MainActivity : AppCompatActivity() {
     }
 
     private suspend fun readAggregatedData(client: HealthConnectClient) {
+
         // 1
         val today = ZonedDateTime.now()
         val startOfDayOfThisMonth = today.withDayOfMonth(1)
@@ -233,6 +210,14 @@ class MainActivity : AppCompatActivity() {
             )
         )
 
+        val currentTime = ZonedDateTime.now().toInstant()
+
+        val jsonData = mapOf(
+            "steps" to steps,
+            "caloriesBurned" to caloriesBurned,
+            "timestamp" to currentTime.toString()
+        )
+
         // 3
         lifecycleScope.launch {
             val insertRecords = client.insertRecords(records)
@@ -244,12 +229,87 @@ class MainActivity : AppCompatActivity() {
                         "Records inserted successfully",
                         Toast.LENGTH_SHORT
                     ).show()
+                    sendToAzureFunction(steps, caloriesBurned)
                 }
             }
 
             // refresh data
             readData(client)
         }
+    }
+    private fun sendToAzureFunction(steps: Long, caloriesBurned: Double) {
+        val azureFunctionUrl = "https://deudtchronicillness.eastus2.cloudapp.azure.com/step"
+
+        try {
+            val url = URL(azureFunctionUrl)
+            val connection = url.openConnection() as HttpURLConnection
+            connection.requestMethod = "POST"
+            connection.setRequestProperty("Content-Type", "application/json")
+            connection.doOutput = true
+
+            val payload = mapOf(
+                "steps" to steps,
+                "caloriesBurned" to caloriesBurned
+            )
+            val payloadJson = mapToJson(payload)
+
+            val outputStream = OutputStreamWriter(connection.outputStream)
+            outputStream.write(payloadJson)
+            outputStream.flush()
+
+            val responseCode = connection.responseCode
+            if (responseCode == HttpURLConnection.HTTP_OK) {
+                println("Data sent to Azure Function successfully.")
+            } else {
+                println("Failed to send data to Azure Function. Response code: $responseCode")
+            }
+
+            connection.disconnect()
+        } catch (e: Exception) {
+            e.printStackTrace()
+        }
+    }
+    private fun mapToJson(data: Map<String, Any>): String {
+        val jsonString = StringBuilder()
+        jsonString.append("{")
+        var isFirst = true
+        for ((key, value) in data) {
+            if (!isFirst) {
+                jsonString.append(", ")
+            }
+            isFirst = false
+            jsonString.append("\"$key\":")
+            when (value) {
+                is String -> jsonString.append("\"$value\"")
+                is Number, is Boolean -> jsonString.append("$value")
+                is Map<*, *> -> jsonString.append(mapToJson(value as Map<String, Any>))
+                is List<*> -> jsonString.append(listToJson(value as List<Any>))
+                else -> jsonString.append("\"${value.toString().replace("\"", "\\\"")}\"")
+            }
+        }
+        jsonString.append("}")
+        return jsonString.toString()
+    }
+
+    private fun listToJson(data: List<Any>): String {
+        val jsonString = StringBuilder()
+        jsonString.append("[")
+        var isFirst = true
+        for (item in data) {
+            if (!isFirst) {
+                jsonString.append(", ")
+            }
+            isFirst = false
+            when (item) {
+                is String -> jsonString.append("\"$item\"")
+                is Number, is Boolean -> jsonString.append("$item")
+                is Map<*, *> -> jsonString.append(mapToJson(item as Map<String, Any>))
+                is List<*> -> jsonString.append(listToJson(item as List<Any>))
+                else -> jsonString.append("\"${item.toString().replace("\"", "\\\"")}\"")
+            }
+        }
+        jsonString.append("]")
+        return jsonString.toString()
     }
 
     private suspend fun readData(client: HealthConnectClient) {

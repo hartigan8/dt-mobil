@@ -13,6 +13,27 @@
         android:supportsRtl="true"
         android:theme="@style/SplashTheme"
         tools:ignore="GoogleAppIndexingWarning">
+
+
+        <activity
+            android:name=".SignInActivity"
+            android:theme="@style/AppTheme"
+            android:exported="true">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+
+        </activity>
+
+        <!-- SignUpActivity (Assuming you have a SignUpActivity) -->
+        <activity
+            android:name=".SignUpActivity"
+            android:exported="false"
+            android:theme="@style/AppTheme"
+            />
+
+        <!-- Your PrivacyPolicyActivity -->
         <activity
             android:name=".PrivacyPolicyActivity"
             android:exported="true">
@@ -21,21 +42,12 @@
             </intent-filter>
             <meta-data android:name="health_permissions" android:resource="@array/health_permissions" />
         </activity>
+
+        <!-- MainActivity (Launcher) -->
         <activity
             android:name=".MainActivity"
-            android:exported="true"
-            android:theme="@style/SplashTheme">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-                <category android:name="android.intent.category.LAUNCHER" />
-            </intent-filter>
-        </activity>
-        <activity
-            android:name=".SignUpActivity"
-            android:exported="false" />
-        <activity
-            android:name=".SignInActivity"
-            android:exported="false">
+            android:exported="true">
+
         </activity>
 
     </application>

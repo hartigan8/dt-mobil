@@ -5,7 +5,7 @@
     android:layout_width="match_parent"
     android:layout_height="match_parent"
     android:layout_margin="24dp"
-    tools:context="com.yourcompany.android.fitlogger.MainActivity">
+    tools:context="com.example.loginapp.MainActivity">
 
   <TextView
       android:id="@+id/stepsTitle"

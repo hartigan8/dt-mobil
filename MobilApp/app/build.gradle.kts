@@ -43,7 +43,9 @@ dependencies {
 
     // Support Libraries
     implementation ("androidx.lifecycle:lifecycle-runtime-ktx:2.5.1")
-
+    implementation ("io.jsonwebtoken:jjwt-api:0.11.2")
+    implementation ("io.jsonwebtoken:jjwt-impl:0.11.2")
+    implementation ("io.jsonwebtoken:jjwt-jackson:0.11.2")
     // Testing Dependencies
     testImplementation ("junit:junit:4.13.2")
     androidTestImplementation ("androidx.test.ext:junit:1.1.3")
@@ -51,7 +53,6 @@ dependencies {
 
     // SplashScreen compat library
     implementation ("androidx.core:core-splashscreen:1.0.0")
-
     // TUTORIAL DEPENDENCIES HERE
     implementation ("androidx.health:health-connect-client:1.0.0-alpha03")
     implementation("androidx.health:health-services-client:1.1.0-alpha01")

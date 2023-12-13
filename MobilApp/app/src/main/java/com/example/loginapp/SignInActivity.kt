@@ -2,12 +2,15 @@ package com.example.loginapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.TextView
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.loginapp.databinding.ActivitySignInBinding
 import okhttp3.*
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import org.json.JSONObject
 import java.io.IOException
+
 
 class SignInActivity : AppCompatActivity() {
 
@@ -20,13 +23,17 @@ class SignInActivity : AppCompatActivity() {
         binding = ActivitySignInBinding.inflate(layoutInflater)
         setContentView(binding.root)
 
-        binding.textView.setOnClickListener {
-            startActivity(Intent(this, SignUpActivity::class.java))
+        binding.textView1.setOnClickListener {
+            val intent = Intent(this, SignUpActivity::class.java)
+            startActivity(intent)
         }
 
         binding.button.setOnClickListener {
-            val email = binding.emailEt.text.toString()
-            val password = binding.passET.text.toString()
+            val emailTextView = findViewById<TextView>(R.id.emailTextView)
+            val passwordTextView = findViewById<TextView>(R.id.passwordTextView)
+
+            val email = emailTextView.text.toString()
+            val password = passwordTextView.text.toString()
 
             if (email.isNotEmpty() && password.isNotEmpty()) {
                 val requestBody = RequestBody.create(
@@ -35,7 +42,7 @@ class SignInActivity : AppCompatActivity() {
                 )
                 
                 val request = Request.Builder()
-                    .url("http://10.0.2.2:8080/auth/login")
+                    .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/auth/login")
                     .post(requestBody)
                     .build()
 
@@ -43,10 +50,23 @@ class SignInActivity : AppCompatActivity() {
                     try {
                         val response = client.newCall(request).execute()
                         runOnUiThread {
+
                             if (response.isSuccessful) {
                                 // Handle successful response
                                 Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
-                                // Navigate to another activity or update UI accordingly
+
+                                val dbHelper = DatabaseHelper(this)
+                                val token = dbHelper.getTokenById(email)
+
+                                if (dbHelper.checkUser(email, password, token)) {
+                                    // User is valid, navigate to the main activity
+                                    val mainIntent = Intent(this, MainActivity::class.java)
+                                    startActivity(mainIntent)
+                                    finish()
+                                }
+
+                                // Finish the SignInActivity if needed
+
                             } else {
                                 // Handle unsuccessful response
                                 Toast.makeText(this, "Giriş başarısız", Toast.LENGTH_SHORT).show()

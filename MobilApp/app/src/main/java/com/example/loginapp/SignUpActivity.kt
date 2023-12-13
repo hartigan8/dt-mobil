@@ -2,20 +2,26 @@ package com.example.loginapp
 
 import android.content.Intent
 import android.os.Bundle
+import android.widget.EditText
 import android.widget.Toast
 import androidx.appcompat.app.AppCompatActivity
 import com.example.loginapp.databinding.ActivitySignUpBinding
-import okhttp3.*
-import okhttp3.MediaType
+import io.jsonwebtoken.Jwts
+import io.jsonwebtoken.SignatureAlgorithm
+import io.jsonwebtoken.security.Keys
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
 import okhttp3.RequestBody
-import org.json.JSONObject
 import java.io.IOException
+import java.util.Date
+
 
 class SignUpActivity : AppCompatActivity() {
 
     private lateinit var binding: ActivitySignUpBinding
     private val client = OkHttpClient()
+    private lateinit var databaseHelper: DatabaseHelper
 
     override fun onCreate(savedInstanceState: Bundle?) {
         super.onCreate(savedInstanceState)
@@ -27,18 +33,38 @@ class SignUpActivity : AppCompatActivity() {
             startActivity(intent)
         }
 
-        binding.button.setOnClickListener {
-            val name = binding.nameEt.text.toString()
-            val surname = binding.surnameET.text.toString()
-            val phoneNumber = binding.phoneNumberEt.text.toString()
-            val email = binding.emailEt.text.toString()
-            val password = binding.passET.text.toString()
-            val confirmPass = binding.confirmPassEt.text.toString()
+        val nameTextView = findViewById<EditText>(R.id.nameTextView)
+        val surnameTextView = findViewById<EditText>(R.id.surnameTextView)
+        val emailTextView = findViewById<EditText>(R.id.emailTextView)
+        val passwordTextView = findViewById<EditText>(R.id.passwordTextView)
+        val confirmPassTextView = findViewById<EditText>(R.id.confirmPasswordTextView)
+        val phoneNumberTextView = findViewById<EditText>(R.id.phoneNumberTextView)
+
+
+        binding.signUp.setOnClickListener {
+            val name = nameTextView.text.toString()
+            val surname = surnameTextView.text.toString()
+            val phoneNumber = phoneNumberTextView.text.toString()
+            val email = emailTextView.text.toString()
+            val password = passwordTextView.text.toString()
+            val confirmPass = confirmPassTextView.text.toString()
 
 
             if (email.isNotEmpty() && password.isNotEmpty() && phoneNumber.isNotEmpty() && surname.isNotEmpty() && name.isNotEmpty() && confirmPass.isNotEmpty()) {
                 if (password == confirmPass) {
+                    val dbHelper = DatabaseHelper(this)
+                    val userId = dbHelper.getUserIdByEmail(email)
+                    val token = generateToken(email,userId)
+                    val user = User(
+                        name = name,
+                        surname = surname,
+                        phonenumber = phoneNumber,
+                        email = email,
+                        password = password,
+                        token = token
+                    )
 
+                    dbHelper.addUser(user, token)
 
                     val requestBody = RequestBody.create(
                         "application/json; charset=utf-8".toMediaTypeOrNull(),
@@ -46,7 +72,7 @@ class SignUpActivity : AppCompatActivity() {
                     )
 
                     val request = Request.Builder()
-                        .url("http://10.0.2.2:8080/auth/login")
+                        .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/auth/register")
                         .post(requestBody)
                         .build()
 
@@ -55,7 +81,7 @@ class SignUpActivity : AppCompatActivity() {
                             val response = client.newCall(request).execute()
                             runOnUiThread {
                                 if (response.isSuccessful) {
-                                    // Handle successful response
+
                                     Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT)
                                         .show()
                                     // Navigate to another activity or update UI accordingly
@@ -81,4 +107,19 @@ class SignUpActivity : AppCompatActivity() {
             }
         }
     }
-}
+
+    private fun generateToken(email: String, userId: Int): String {
+            // Token üretme mantığını buraya ekleyin
+            val expirationTimeMillis = System.currentTimeMillis() + (60 * 60 * 1000) // Token 1 saat sonra geçerliliğini yitirir
+            val keyBytes = Keys.secretKeyFor(SignatureAlgorithm.HS256).encoded
+
+            return Jwts.builder()
+                .setSubject(email)
+                .claim("userId", userId)
+                .setExpiration(Date(expirationTimeMillis))
+                .signWith(SignatureAlgorithm.HS256, keyBytes)
+                .compact()
+        }
+    }
+
+
