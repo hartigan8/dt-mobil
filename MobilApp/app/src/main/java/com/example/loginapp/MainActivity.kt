@@ -24,6 +24,7 @@ import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
 import java.io.OutputStreamWriter
 import java.time.Duration
+import java.time.LocalDate
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 
@@ -123,6 +124,7 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun readDailyRecords(client: HealthConnectClient) {
         // 1
+        //şuanın saati
         val today = ZonedDateTime.now()
         val startOfDay = today.truncatedTo(ChronoUnit.DAYS)
         val timeRangeFilter = TimeRangeFilter.between(
@@ -132,6 +134,7 @@ class MainActivity : AppCompatActivity() {
 
         // 2
         val stepsRecordRequest = ReadRecordsRequest(StepsRecord::class, timeRangeFilter)
+        //günlük olan stepsi tutuyor
         val numberOfStepsToday = client.readRecords(stepsRecordRequest)
             .records
             .sumOf { it.count }
@@ -170,12 +173,27 @@ class MainActivity : AppCompatActivity() {
                 timeRangeFilter = timeRangeFilter,
             )
         )
+        
 
         // 3
         val steps = data[StepsRecord.COUNT_TOTAL] ?: 0
         val averageSteps = steps / elapsedDaysInMonth
+
+        //save the steps data
+        val dbHelper = StepDatabaseHelper(this)
+        val previousSteps = dbHelper.getLatestSteps()
+        if (previousSteps != steps.toInt()) {
+            dbHelper.updateLatestSteps(steps.toInt())
+        }
+        val currentDate = LocalDate.now().toString()
+        dbHelper.insertStepData(currentDate, steps.toInt())
+
+        //ekrana yazılıcak ya da clouda atılıcak olan
+        val stepsDifference = steps.toInt() - previousSteps
+
         val stepsAverageTextView = findViewById<TextView>(R.id.stepsAverageValue)
-        stepsAverageTextView.text = averageSteps.toString()
+        stepsAverageTextView.text = stepsDifference.toString()
+
 
         // 4
         val caloriesBurned = data[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inCalories ?: 0.0
