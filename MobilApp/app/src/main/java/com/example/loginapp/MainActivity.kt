@@ -33,10 +33,8 @@ import java.time.temporal.ChronoUnit
  */
 
 
-/*Token işi
-        register ve login olduğunda token yolla bu tokenın anlamı ıd sen bunu header olarak tut
-* */
 class MainActivity : AppCompatActivity() {
+
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Switch to AppTheme for displaying the activity
@@ -134,7 +132,7 @@ class MainActivity : AppCompatActivity() {
 
         // 2
         val stepsRecordRequest = ReadRecordsRequest(StepsRecord::class, timeRangeFilter)
-        //günlük olan stepsi tutuyor
+        //günlük olan stepsi tutuyor eğer previosuday 0 ise burdaki veriyi clouda atıcaz
         val numberOfStepsToday = client.readRecords(stepsRecordRequest)
             .records
             .sumOf { it.count }
@@ -155,12 +153,57 @@ class MainActivity : AppCompatActivity() {
 
     private suspend fun readAggregatedData(client: HealthConnectClient) {
 
-        // 1
         val today = ZonedDateTime.now()
-        val startOfDayOfThisMonth = today.withDayOfMonth(1)
-            .truncatedTo(ChronoUnit.DAYS)
+        val startOfDay = today.truncatedTo(ChronoUnit.DAYS)
+        val startOfDayOfThisMonth = today.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS)
+
+        val dbDayStepHelper = StepDatabaseHelper(this)
+        val previousDay = dbDayStepHelper.getLatestDay()
+
+        if (previousDay != today.toString()) {
+            val differenceDays = ChronoUnit.DAYS.between(today.toLocalDate(), LocalDate.parse(previousDay)).toInt()
+
+            if (differenceDays == 0 )
+            {
+                val timeRangeFilter = TimeRangeFilter.between(
+                    startOfDay.toLocalDateTime(),
+                    today.toLocalDateTime()
+                )
+
+                // 2
+                val stepsRecordRequest = ReadRecordsRequest(StepsRecord::class, timeRangeFilter)
+                //günlük olan stepsi tutuyor eğer previosuday 0 ise burdaki veriyi clouda atıcaz
+                val numberOfStepsToday = client.readRecords(stepsRecordRequest)
+                    .records
+                    .sumOf { it.count }
+            }
+            else {
+                for (i in 0 until differenceDays) {
+                val currentDate = today.minusDays(i.toLong()).toString()
+                val startOfDay = today.minusDays(i.toLong()).truncatedTo(ChronoUnit.DAYS)
+                val endOfDay = startOfDay.plusDays(1).minusSeconds(1)
+
+                val timeRangeFilterDayCloud = TimeRangeFilter.between(
+                    startOfDay.toLocalDateTime(),
+                    endOfDay.toLocalDateTime()
+                )
+
+                val stepsRecordRequest = ReadRecordsRequest(StepsRecord::class, timeRangeFilterDayCloud)
+                val stepsRecords = client.readRecords(stepsRecordRequest)
+                    .records
+                    .sumOf { it.count }
+
+                dbDayStepHelper.insertStepData(currentDate, stepsRecords.toInt())
+            }
+            }
+
+        }
+
+
+
         val elapsedDaysInMonth = Duration.between(startOfDayOfThisMonth, today)
             .toDays() + 1
+
         val timeRangeFilter = TimeRangeFilter.between(
             startOfDayOfThisMonth.toInstant(),
             today.toInstant()
@@ -173,14 +216,12 @@ class MainActivity : AppCompatActivity() {
                 timeRangeFilter = timeRangeFilter,
             )
         )
-        
 
         // 3
         val steps = data[StepsRecord.COUNT_TOTAL] ?: 0
-        val averageSteps = steps / elapsedDaysInMonth
 
         //save the steps data
-        val dbHelper = StepDatabaseHelper(this)
+        /*val dbHelper = StepDatabaseHelper(this)
         val previousSteps = dbHelper.getLatestSteps()
         if (previousSteps != steps.toInt()) {
             dbHelper.updateLatestSteps(steps.toInt())
@@ -189,11 +230,11 @@ class MainActivity : AppCompatActivity() {
         dbHelper.insertStepData(currentDate, steps.toInt())
 
         //ekrana yazılıcak ya da clouda atılıcak olan
-        val stepsDifference = steps.toInt() - previousSteps
+        val stepsDifference = steps.toInt() - previousSteps*/
+
 
         val stepsAverageTextView = findViewById<TextView>(R.id.stepsAverageValue)
-        stepsAverageTextView.text = stepsDifference.toString()
-
+        stepsAverageTextView.text = steps.toString()
 
         // 4
         val caloriesBurned = data[TotalCaloriesBurnedRecord.ENERGY_TOTAL]?.inCalories ?: 0.0

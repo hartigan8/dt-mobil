@@ -29,6 +29,40 @@ class StepDatabaseHelper(context: Context) :
         db?.execSQL(DROP_USER_TABLE)
         onCreate(db)
     }
+    fun getLatestDay(): String? {
+        val db = this.readableDatabase
+        var latestDay: String? = null
+9
+        val columns = arrayOf(COLUMN_USER_DATE)
+
+        val cursor = db.query(
+            TABLE_USER,
+            columns,
+            null,
+            null,
+            null,
+            null,
+            "$COLUMN_USER_DATE DESC",  // Order by date in descending order to get the latest date first
+            "1"                        // Limit to one result
+        )
+
+        if (cursor.moveToFirst()) {
+            val columnIndex = cursor.getColumnIndex(COLUMN_USER_DATE)
+
+            if (columnIndex != -1) {
+                latestDay = cursor.getString(columnIndex)
+            } else {
+
+            }
+        }
+
+        cursor.close()
+        db.close()
+
+        return latestDay
+    }
+
+
 
     fun getLatestSteps(): Int {
         val db = this.readableDatabase
