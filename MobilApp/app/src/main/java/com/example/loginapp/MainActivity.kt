@@ -2,6 +2,8 @@
 package com.example.loginapp
 
 
+import android.content.Context
+import android.content.Intent
 import java.net.HttpURLConnection
 import java.net.URL
 import android.os.Bundle
@@ -22,11 +24,18 @@ import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Energy
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import okhttp3.MediaType.Companion.toMediaTypeOrNull
+import okhttp3.OkHttpClient
+import okhttp3.Request
+import okhttp3.RequestBody
+import java.io.IOException
 import java.io.OutputStreamWriter
 import java.time.Duration
 import java.time.LocalDate
 import java.time.ZonedDateTime
+import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
+import java.util.Locale
 
 /**
  * Main Screen
@@ -35,6 +44,7 @@ import java.time.temporal.ChronoUnit
 
 class MainActivity : AppCompatActivity() {
 
+    private val stepsclient = OkHttpClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Switch to AppTheme for displaying the activity
@@ -161,7 +171,7 @@ class MainActivity : AppCompatActivity() {
         val previousDay = dbDayStepHelper.getLatestDay()
 
         if (previousDay != today.toString()) {
-            val differenceDays = ChronoUnit.DAYS.between(today.toLocalDate(), LocalDate.parse(previousDay)).toInt()
+            val differenceDays = ChronoUnit.DAYS.between(LocalDate.parse(previousDay),today.toLocalDate()).toInt()
 
             if (differenceDays == 0 )
             {
@@ -288,7 +298,7 @@ class MainActivity : AppCompatActivity() {
                         "Records inserted successfully",
                         Toast.LENGTH_SHORT
                     ).show()
-                    sendToAzureFunction(steps, caloriesBurned)
+                    sendToAzureFunction(steps.toInt(), startTime.epochSecond.toInt(),endTime.epochSecond.toInt())
                 }
             }
 
@@ -296,80 +306,75 @@ class MainActivity : AppCompatActivity() {
             readData(client)
         }
     }
-    private fun sendToAzureFunction(steps: Long, caloriesBurned: Double) {
-        val azureFunctionUrl = "https://deudtchronicillness.eastus2.cloudapp.azure.com/step"
+    private fun sendToAzureFunction(steps: Int , startTime: Int, endTime: Int ) {
 
-        try {
-            val url = URL(azureFunctionUrl)
-            val connection = url.openConnection() as HttpURLConnection
-            connection.requestMethod = "POST"
-            connection.setRequestProperty("Content-Type", "application/json")
-            connection.doOutput = true
+        val requestBody = RequestBody.create(
+            "application/json; charset=utf-8".toMediaTypeOrNull(),
+                "{\"startTime\":\"$startTime\",\"endTime\":\"$endTime\",\"count\":\"$steps\"}"
 
-            val payload = mapOf(
-                "steps" to steps,
-                "caloriesBurned" to caloriesBurned
-            )
-            val payloadJson = mapToJson(payload)
+        )
+        val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+        val userEmail: String ? = sharedPreferences.getString("USER_EMAIL", null)
 
-            val outputStream = OutputStreamWriter(connection.outputStream)
-            outputStream.write(payloadJson)
-            outputStream.flush()
+        if (!userEmail.isNullOrEmpty()) {
+            val dbHelper = DatabaseHelper(this)
 
-            val responseCode = connection.responseCode
-            if (responseCode == HttpURLConnection.HTTP_OK) {
-                println("Data sent to Azure Function successfully.")
+            // Check for null before calling getTokenById
+            val token = userEmail.let { email ->
+                if (email != null) {
+                    dbHelper.getTokenById(email)
+                } else {
+                    // Handle the case where userEmail is null
+                    null
+                }
+            }
+            if (token != null) {
+                // Now you can use 'token' safely
+                val requestBody = RequestBody.create(
+                    "application/json; charset=utf-8".toMediaTypeOrNull(),
+                    "{\"startTime\":\"$startTime\",\"endTime\":\"$endTime\",\"count\":\"$steps\"}"
+                )
+
+                val request = Request.Builder()
+                    .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/step")
+                    .post(requestBody)
+                    .header("Authorization", token)
+                    .build()
+                
+                Thread {
+                    try {
+                        val response = stepsclient.newCall(request).execute()
+                        runOnUiThread {
+
+                            if (response.isSuccessful) {
+                                // Handle successful response
+                                Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
+
+                            } else {
+                                // Handle unsuccessful response
+                                Toast.makeText(this, "Giriş başarısız", Toast.LENGTH_SHORT).show()
+                            }
+                        }
+                    } catch (e: IOException) {
+                        runOnUiThread {
+                            Toast.makeText(this, "İstek gönderilirken hata oluştu: $e", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                }.start()
+
+                // Continue with the rest of your code that uses the 'request' object
             } else {
-                println("Failed to send data to Azure Function. Response code: $responseCode")
+                // Handle the case where the token is null
+                Toast.makeText(this, "Token not found for user: $userEmail", Toast.LENGTH_SHORT).show()
             }
+        } else {
+            // Handle the case where userEmail is null or empty
+            Toast.makeText(this, "User email not found or empty.", Toast.LENGTH_SHORT).show()
+        }
 
-            connection.disconnect()
-        } catch (e: Exception) {
-            e.printStackTrace()
-        }
-    }
-    private fun mapToJson(data: Map<String, Any>): String {
-        val jsonString = StringBuilder()
-        jsonString.append("{")
-        var isFirst = true
-        for ((key, value) in data) {
-            if (!isFirst) {
-                jsonString.append(", ")
-            }
-            isFirst = false
-            jsonString.append("\"$key\":")
-            when (value) {
-                is String -> jsonString.append("\"$value\"")
-                is Number, is Boolean -> jsonString.append("$value")
-                is Map<*, *> -> jsonString.append(mapToJson(value as Map<String, Any>))
-                is List<*> -> jsonString.append(listToJson(value as List<Any>))
-                else -> jsonString.append("\"${value.toString().replace("\"", "\\\"")}\"")
-            }
-        }
-        jsonString.append("}")
-        return jsonString.toString()
+
     }
 
-    private fun listToJson(data: List<Any>): String {
-        val jsonString = StringBuilder()
-        jsonString.append("[")
-        var isFirst = true
-        for (item in data) {
-            if (!isFirst) {
-                jsonString.append(", ")
-            }
-            isFirst = false
-            when (item) {
-                is String -> jsonString.append("\"$item\"")
-                is Number, is Boolean -> jsonString.append("$item")
-                is Map<*, *> -> jsonString.append(mapToJson(item as Map<String, Any>))
-                is List<*> -> jsonString.append(listToJson(item as List<Any>))
-                else -> jsonString.append("\"${item.toString().replace("\"", "\\\"")}\"")
-            }
-        }
-        jsonString.append("]")
-        return jsonString.toString()
-    }
 
     private suspend fun readData(client: HealthConnectClient) {
         readDailyRecords(client)

@@ -1,5 +1,6 @@
 package com.example.loginapp
 
+import android.content.Context
 import android.content.Intent
 import android.os.Bundle
 import android.widget.EditText
@@ -81,6 +82,8 @@ class SignUpActivity : AppCompatActivity() {
                             val response = client.newCall(request).execute()
                             runOnUiThread {
                                 if (response.isSuccessful) {
+                                    val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
+                                    sharedPreferences.edit().putString("USER_EMAIL", email).apply()
 
                                     Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT)
                                         .show()
