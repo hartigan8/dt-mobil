@@ -15,6 +15,8 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import java.io.IOException
+import java.security.SecureRandom
+import java.util.Base64
 import java.util.Date
 
 
@@ -114,15 +116,21 @@ class SignUpActivity : AppCompatActivity() {
     private fun generateToken(email: String, userId: Int): String {
             // Token üretme mantığını buraya ekleyin
             val expirationTimeMillis = System.currentTimeMillis() + (60 * 60 * 1000) // Token 1 saat sonra geçerliliğini yitirir
-            val keyBytes = Keys.secretKeyFor(SignatureAlgorithm.HS256).encoded
-
+            val secretKey = generateSecretKey()
             return Jwts.builder()
                 .setSubject(email)
                 .claim("userId", userId)
                 .setExpiration(Date(expirationTimeMillis))
-                .signWith(SignatureAlgorithm.HS256, keyBytes)
+                .signWith(SignatureAlgorithm.HS256, secretKey)
                 .compact()
         }
     }
+    private fun generateSecretKey(): String {
+        val random = SecureRandom()
+        val keyBytes = ByteArray(32)
+        random.nextBytes(keyBytes)
+        return Base64.getEncoder().encodeToString(keyBytes)
+    }
+
 
 

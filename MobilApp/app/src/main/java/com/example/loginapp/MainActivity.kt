@@ -2,10 +2,6 @@
 package com.example.loginapp
 
 
-import android.content.Context
-import android.content.Intent
-import java.net.HttpURLConnection
-import java.net.URL
 import android.os.Bundle
 import android.view.inputmethod.EditorInfo
 import android.widget.Button
@@ -29,13 +25,9 @@ import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
 import java.io.IOException
-import java.io.OutputStreamWriter
 import java.time.Duration
-import java.time.LocalDate
 import java.time.ZonedDateTime
-import java.time.format.DateTimeFormatter
 import java.time.temporal.ChronoUnit
-import java.util.Locale
 
 /**
  * Main Screen
@@ -44,7 +36,6 @@ import java.util.Locale
 
 class MainActivity : AppCompatActivity() {
 
-    private val stepsclient = OkHttpClient()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         // Switch to AppTheme for displaying the activity
@@ -61,7 +52,6 @@ class MainActivity : AppCompatActivity() {
                 this, "Health Connect is not available", Toast.LENGTH_SHORT
             ).show()
         }
-
         val stepsEditText = findViewById<EditText>(R.id.stepsEditText)
         val caloriesEditText = findViewById<EditText>(R.id.caloriesEditText)
 
@@ -164,14 +154,19 @@ class MainActivity : AppCompatActivity() {
     private suspend fun readAggregatedData(client: HealthConnectClient) {
 
         val today = ZonedDateTime.now()
+        val dayOfMonth = today.dayOfMonth
         val startOfDay = today.truncatedTo(ChronoUnit.DAYS)
         val startOfDayOfThisMonth = today.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS)
 
         val dbDayStepHelper = StepDatabaseHelper(this)
         val previousDay = dbDayStepHelper.getLatestDay()
 
-        if (previousDay != today.toString()) {
-            val differenceDays = ChronoUnit.DAYS.between(LocalDate.parse(previousDay),today.toLocalDate()).toInt()
+        val previousZonedDateTime = ZonedDateTime.parse(previousDay)
+
+        val previousDayOfMonth = previousZonedDateTime.dayOfMonth
+        val previousDayOfMonth1 = 15
+        if (previousDayOfMonth1 != dayOfMonth) {
+            val differenceDays = dayOfMonth-previousDayOfMonth1
 
             if (differenceDays == 0 )
             {
@@ -189,8 +184,8 @@ class MainActivity : AppCompatActivity() {
             }
             else {
                 for (i in 0 until differenceDays) {
-                val currentDate = today.minusDays(i.toLong()).toString()
-                val startOfDay = today.minusDays(i.toLong()).truncatedTo(ChronoUnit.DAYS)
+                val currentDate = today.minusDays(i.toLong()+1).toString()
+                val startOfDay = today.minusDays(i.toLong()+1).truncatedTo(ChronoUnit.DAYS)
                 val endOfDay = startOfDay.plusDays(1).minusSeconds(1)
 
                 val timeRangeFilterDayCloud = TimeRangeFilter.between(
@@ -203,7 +198,8 @@ class MainActivity : AppCompatActivity() {
                     .records
                     .sumOf { it.count }
 
-                dbDayStepHelper.insertStepData(currentDate, stepsRecords.toInt())
+                sendToAzureFunction(stepsRecords.toInt(), startOfDay.toEpochSecond().toInt(),endOfDay.toEpochSecond().toInt())
+                //dbDayStepHelper.insertStepData(currentDate, stepsRecords.toInt())
             }
             }
 
@@ -298,7 +294,7 @@ class MainActivity : AppCompatActivity() {
                         "Records inserted successfully",
                         Toast.LENGTH_SHORT
                     ).show()
-                    sendToAzureFunction(steps.toInt(), startTime.epochSecond.toInt(),endTime.epochSecond.toInt())
+
                 }
             }
 
@@ -308,42 +304,25 @@ class MainActivity : AppCompatActivity() {
     }
     private fun sendToAzureFunction(steps: Int , startTime: Int, endTime: Int ) {
 
-        val requestBody = RequestBody.create(
-            "application/json; charset=utf-8".toMediaTypeOrNull(),
-                "{\"startTime\":\"$startTime\",\"endTime\":\"$endTime\",\"count\":\"$steps\"}"
+        val httpclient = OkHttpClient()
+        val token = intent.getStringExtra("USER_TOKEN").toString()
 
-        )
-        val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-        val userEmail: String ? = sharedPreferences.getString("USER_EMAIL", null)
+        if (token != null) {
 
-        if (!userEmail.isNullOrEmpty()) {
-            val dbHelper = DatabaseHelper(this)
-
-            // Check for null before calling getTokenById
-            val token = userEmail.let { email ->
-                if (email != null) {
-                    dbHelper.getTokenById(email)
-                } else {
-                    // Handle the case where userEmail is null
-                    null
-                }
-            }
-            if (token != null) {
-                // Now you can use 'token' safely
-                val requestBody = RequestBody.create(
+            val requestBody = RequestBody.create(
                     "application/json; charset=utf-8".toMediaTypeOrNull(),
-                    "{\"startTime\":\"$startTime\",\"endTime\":\"$endTime\",\"count\":\"$steps\"}"
+                    "{\"startTime\":\"${startTime}\",\"endTime\":\"${endTime}\",\"steps\":\"${steps}\"}"
                 )
 
                 val request = Request.Builder()
                     .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/step")
                     .post(requestBody)
-                    .header("Authorization", token)
+                    .addHeader("Authorization", "Bearer $token")
                     .build()
                 
                 Thread {
                     try {
-                        val response = stepsclient.newCall(request).execute()
+                        val response = httpclient.newCall(request).execute()
                         runOnUiThread {
 
                             if (response.isSuccessful) {
@@ -362,15 +341,7 @@ class MainActivity : AppCompatActivity() {
                     }
                 }.start()
 
-                // Continue with the rest of your code that uses the 'request' object
-            } else {
-                // Handle the case where the token is null
-                Toast.makeText(this, "Token not found for user: $userEmail", Toast.LENGTH_SHORT).show()
             }
-        } else {
-            // Handle the case where userEmail is null or empty
-            Toast.makeText(this, "User email not found or empty.", Toast.LENGTH_SHORT).show()
-        }
 
 
     }
@@ -381,3 +352,4 @@ class MainActivity : AppCompatActivity() {
         readAggregatedData(client)
     }
 }
+

@@ -150,10 +150,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         db.close()
     }
 
-    /*private fun generateToken(): String {
-        return UUID.randomUUID().toString()
-    }*/
-
 
     fun updateUser(user: User) {
         val db = this.writableDatabase

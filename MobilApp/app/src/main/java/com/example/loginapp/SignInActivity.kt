@@ -61,6 +61,7 @@ class SignInActivity : AppCompatActivity() {
                                 if (dbHelper.checkUser(email, password, token)) {
                                     // User is valid, navigate to the main activity
                                     val mainIntent = Intent(this, MainActivity::class.java)
+                                    mainIntent.putExtra("USER_TOKEN", token)
                                     startActivity(mainIntent)
                                     finish()
                                 }
