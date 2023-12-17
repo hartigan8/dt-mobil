@@ -20,6 +20,7 @@ import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.health.connect.client.units.Energy
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import okhttp3.Credentials
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
@@ -155,7 +156,6 @@ class MainActivity : AppCompatActivity() {
 
         val today = ZonedDateTime.now()
         val dayOfMonth = today.dayOfMonth
-        val startOfDay = today.truncatedTo(ChronoUnit.DAYS)
         val startOfDayOfThisMonth = today.withDayOfMonth(1).truncatedTo(ChronoUnit.DAYS)
 
         val dbDayStepHelper = StepDatabaseHelper(this)
@@ -170,17 +170,20 @@ class MainActivity : AppCompatActivity() {
 
             if (differenceDays == 0 )
             {
+                val startOfDay = today.truncatedTo(ChronoUnit.DAYS)
                 val timeRangeFilter = TimeRangeFilter.between(
                     startOfDay.toLocalDateTime(),
                     today.toLocalDateTime()
                 )
-
+                val endOfDay = startOfDay.plusDays(1).minusSeconds(1)
                 // 2
                 val stepsRecordRequest = ReadRecordsRequest(StepsRecord::class, timeRangeFilter)
                 //günlük olan stepsi tutuyor eğer previosuday 0 ise burdaki veriyi clouda atıcaz
                 val numberOfStepsToday = client.readRecords(stepsRecordRequest)
                     .records
                     .sumOf { it.count }
+
+                sendToAzureFunction(numberOfStepsToday.toInt(), startOfDay.toEpochSecond().toInt(),endOfDay.toEpochSecond().toInt())
             }
             else {
                 for (i in 0 until differenceDays) {
@@ -309,22 +312,23 @@ class MainActivity : AppCompatActivity() {
 
         if (token != null) {
 
-            val requestBody = RequestBody.create(
-                    "application/json; charset=utf-8".toMediaTypeOrNull(),
-                    "{\"startTime\":\"${startTime}\",\"endTime\":\"${endTime}\",\"steps\":\"${steps}\"}"
-                )
 
-                val request = Request.Builder()
-                    .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/step")
-                    .post(requestBody)
-                    .addHeader("Authorization", "Bearer $token")
-                    .build()
-                
-                Thread {
+            val requestBody = RequestBody.create(
+                "application/json; charset=utf-8".toMediaTypeOrNull(),
+                """{"count":$steps,"startTime":$startTime,"endTime":$endTime}"""
+            )
+
+            val request = Request.Builder()
+                .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/step")
+                .post(requestBody)
+                .addHeader("Authorization", "Bearer $token")
+                .build()
+
+
+            Thread {
                     try {
                         val response = httpclient.newCall(request).execute()
                         runOnUiThread {
-
                             if (response.isSuccessful) {
                                 // Handle successful response
                                 Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()

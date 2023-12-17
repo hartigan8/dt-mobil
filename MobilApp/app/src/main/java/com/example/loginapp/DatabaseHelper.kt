@@ -88,6 +88,18 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         return userId
     }
 
+    fun saveToken(email: String, token: String) {
+        val db = this.writableDatabase
+
+        val values = ContentValues().apply {
+            put(COLUMN_USER_TOKEN, token)
+        }
+
+        // update token for the specified user email
+        db.update(TABLE_USER, values, "$COLUMN_USER_EMAIL = ?", arrayOf(email))
+
+        db.close()
+    }
 
 
 
@@ -121,7 +133,6 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                     phonenumber = cursor.getString(cursor.getColumnIndex(COLUMN_USER_PHONENUMBER)),
                     email = cursor.getString(cursor.getColumnIndex(COLUMN_USER_EMAIL)),
                     password = cursor.getString(cursor.getColumnIndex(COLUMN_USER_PASSWORD)),
-                    token = cursor.getString(cursor.getColumnIndex(COLUMN_USER_TOKEN))
 
                 )
 

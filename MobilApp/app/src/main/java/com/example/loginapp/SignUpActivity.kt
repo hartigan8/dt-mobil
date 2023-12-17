@@ -14,6 +14,7 @@ import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import org.json.JSONObject
 import java.io.IOException
 import java.security.SecureRandom
 import java.util.Base64
@@ -56,18 +57,14 @@ class SignUpActivity : AppCompatActivity() {
             if (email.isNotEmpty() && password.isNotEmpty() && phoneNumber.isNotEmpty() && surname.isNotEmpty() && name.isNotEmpty() && confirmPass.isNotEmpty()) {
                 if (password == confirmPass) {
                     val dbHelper = DatabaseHelper(this)
-                    val userId = dbHelper.getUserIdByEmail(email)
-                    val token = generateToken(email,userId)
                     val user = User(
                         name = name,
                         surname = surname,
                         phonenumber = phoneNumber,
                         email = email,
-                        password = password,
-                        token = token
+                        password = password
                     )
 
-                    dbHelper.addUser(user, token)
 
                     val requestBody = RequestBody.create(
                         "application/json; charset=utf-8".toMediaTypeOrNull(),
@@ -82,10 +79,12 @@ class SignUpActivity : AppCompatActivity() {
                     Thread {
                         try {
                             val response = client.newCall(request).execute()
+                            val responseBody = response.body?.string()
                             runOnUiThread {
                                 if (response.isSuccessful) {
-                                    val sharedPreferences = getSharedPreferences("MyPrefs", Context.MODE_PRIVATE)
-                                    sharedPreferences.edit().putString("USER_EMAIL", email).apply()
+                                    val data = JSONObject(responseBody)
+                                    val token = data.getString("access_token")
+                                    dbHelper.saveToken(email, token)
 
                                     Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT)
                                         .show()
@@ -112,25 +111,6 @@ class SignUpActivity : AppCompatActivity() {
             }
         }
     }
-
-    private fun generateToken(email: String, userId: Int): String {
-            // Token üretme mantığını buraya ekleyin
-            val expirationTimeMillis = System.currentTimeMillis() + (60 * 60 * 1000) // Token 1 saat sonra geçerliliğini yitirir
-            val secretKey = generateSecretKey()
-            return Jwts.builder()
-                .setSubject(email)
-                .claim("userId", userId)
-                .setExpiration(Date(expirationTimeMillis))
-                .signWith(SignatureAlgorithm.HS256, secretKey)
-                .compact()
-        }
-    }
-    private fun generateSecretKey(): String {
-        val random = SecureRandom()
-        val keyBytes = ByteArray(32)
-        random.nextBytes(keyBytes)
-        return Base64.getEncoder().encodeToString(keyBytes)
-    }
-
+}
 
 
