@@ -6,10 +6,10 @@
     <string name="heading_today">Today:</string>
     <string name="title_steps_today">Steps:</string>
     <string name="default_value">0</string>
-    <string name="title_calories_today">Calories:</string>
-    <string name="heading_average">Average this month:</string>
-    <string name="title_steps_average">Steps:</string>
-    <string name="title_calories_average">Calories:</string>
+    <string name="title_heart_rate">HeartRate:</string>
+    <string name="DATA">Other Data:</string>
+    <string name="title_bodyfat">BodyFat:</string>
+    <string name="title_oxygen">Oxygen:</string>
     <string name="privacy_policy">Lorem ipsum dolor sit amet, consectetur adipiscing elit....</string>
     <string name="format_calories_average">%.2f</string>
 </resources>

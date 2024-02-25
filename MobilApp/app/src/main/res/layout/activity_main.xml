@@ -86,12 +86,12 @@
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:textSize="16sp"
-      android:text="@string/title_calories_today"
+      android:text="@string/title_heart_rate"
       app:layout_constraintTop_toBottomOf="@id/todayHeading"
       app:layout_constraintStart_toEndOf="@id/stepsTodayValue" />
 
   <TextView
-      android:id="@+id/caloriesTodayValue"
+      android:id="@+id/heartrateTodayValue"
       android:layout_width="80dp"
       android:layout_height="wrap_content"
       android:text="@string/default_value"
@@ -102,49 +102,49 @@
 
   <TextView
       android:id="@+id/averageHeading"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:textSize="24sp"
+      android:layout_width="110dp"
+      android:layout_height="40dp"
       android:layout_marginTop="24dp"
-      android:text="@string/heading_average"
-      app:layout_constraintTop_toBottomOf="@id/stepsTodayTitle"
-      app:layout_constraintStart_toStartOf="parent" />
+      android:text="@string/DATA"
+      android:textSize="24sp"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@id/stepsTodayTitle" />
 
   <TextView
-      android:id="@+id/stepsAverageTitle"
+      android:id="@+id/BodyfatTodayTitle"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
       android:textSize="16sp"
-      android:text="@string/title_steps_average"
+      android:text="@string/title_bodyfat"
       app:layout_constraintTop_toBottomOf="@id/averageHeading"
       app:layout_constraintStart_toStartOf="parent" />
 
   <TextView
-      android:id="@+id/stepsAverageValue"
+      android:id="@+id/bodyfatvalue"
       android:layout_width="80dp"
       android:layout_height="wrap_content"
       android:text="@string/default_value"
       android:textSize="16sp"
       android:layout_marginStart="12dp"
-      app:layout_constraintTop_toTopOf="@id/stepsAverageTitle"
-      app:layout_constraintStart_toEndOf="@+id/stepsAverageTitle" />
+      app:layout_constraintTop_toTopOf="@id/BodyfatTodayTitle"
+      app:layout_constraintStart_toEndOf="@+id/BodyfatTodayTitle" />
 
   <TextView
-      android:id="@+id/caloriesAverageTitle"
+      android:id="@+id/OxygenTitle"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
+      android:text="@string/title_oxygen"
       android:textSize="16sp"
-      android:text="@string/title_calories_average"
-      app:layout_constraintTop_toBottomOf="@id/averageHeading"
-      app:layout_constraintStart_toEndOf="@id/stepsAverageValue" />
+      app:layout_constraintStart_toEndOf="@+id/stepsAverageValue"
+      app:layout_constraintTop_toBottomOf="@id/averageHeading" />
 
   <TextView
-      android:id="@+id/caloriesAverageValue"
+      android:id="@+id/oxygenvalue"
       android:layout_width="80dp"
       android:layout_height="wrap_content"
       android:text="@string/default_value"
       android:layout_marginStart="12dp"
       android:textSize="16sp"
-      app:layout_constraintTop_toTopOf="@id/caloriesAverageTitle"
-      app:layout_constraintStart_toEndOf="@+id/caloriesAverageTitle" />
+      app:layout_constraintTop_toTopOf="@id/OxygenTitle"
+      app:layout_constraintStart_toEndOf="@+id/OxygenTitle" />
 </androidx.constraintlayout.widget.ConstraintLayout>

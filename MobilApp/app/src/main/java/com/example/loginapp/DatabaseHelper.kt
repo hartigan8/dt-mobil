@@ -6,6 +6,7 @@ import android.content.ContentValues
 import android.content.Context
 import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
+import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
 import java.util.*
 
@@ -36,57 +37,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         onCreate(db)
 
     }
-    fun getTokenById(email: String): String {
-        val db = this.readableDatabase
-        val cursor: Cursor = db.query(
-            TABLE_USER,
-            arrayOf(COLUMN_USER_EMAIL, COLUMN_USER_TOKEN),
-            "$COLUMN_USER_EMAIL = ?",
-            arrayOf(email),
-            null,
-            null,
-            null,
-            null
-        )
 
-        var token = ""
-
-        try {
-            if (cursor.moveToFirst()) {
-                // Check if the specified column exists in the cursor
-                val columnIndex = cursor.getColumnIndex(COLUMN_USER_TOKEN)
-                if (columnIndex != -1) {
-                    token = cursor.getString(columnIndex)
-                } else {
-
-                }
-            }
-        } finally {
-            cursor.close()
-        }
-
-        return token
-    }
-    fun getUserIdByEmail(email: String): Int {
-        val db = this.readableDatabase
-        val columns = arrayOf(COLUMN_USER_ID)
-        val selection = "$COLUMN_USER_EMAIL = ?"
-        val selectionArgs = arrayOf(email)
-
-        val cursor = db.query(TABLE_USER, columns, selection, selectionArgs, null, null, null)
-        var userId = -1
-
-        try {
-            val columnIndex = cursor.getColumnIndex(COLUMN_USER_ID)
-            if (cursor.moveToFirst() && columnIndex != -1) {
-                userId = cursor.getInt(columnIndex)
-            }
-        } finally {
-            cursor.close()
-        }
-
-        return userId
-    }
 
     fun saveToken(email: String, token: String) {
         val db = this.writableDatabase
@@ -190,9 +141,37 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
 
 
     }
+    fun checkUser(email: String, token: String): Boolean {
+        val db = this.readableDatabase
+
+        // Sorgu için bir dizi oluşturuyoruz
+        val columns = arrayOf(COLUMN_USER_EMAIL, COLUMN_USER_TOKEN)
+
+        // Veritabanında kullanıcıyı kontrol eden bir sorgu yapılıyor
+        val cursor = db.query(
+            TABLE_USER,
+            columns,
+            "$COLUMN_USER_EMAIL = ? AND $COLUMN_USER_TOKEN = ?",
+            arrayOf(email, token),
+            null,
+            null,
+            null
+        )
+
+        // Sorgudan dönen satır sayısını kontrol ediyoruz
+        val userExists = cursor.count > 0
+
+        // Kullanılan kaynakları temizliyoruz
+        cursor.close()
+        db.close()
+
+        // Kullanıcının var olup olmadığını döndürüyoruz
+        return userExists
+    }
+
 
     //login
-    fun checkUser(email: String, password: String, token: String): Boolean {
+    fun checkUser1(email: String, password: String, token: String): Boolean {
         // array of columns to fetch
         val columns = arrayOf(COLUMN_USER_ID, COLUMN_USER_TOKEN)
 

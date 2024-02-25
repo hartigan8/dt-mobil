@@ -3,7 +3,13 @@
   <array name="health_permissions">
     <item>androidx.health.permission.Steps.READ</item>
     <item>androidx.health.permission.Steps.WRITE</item>
-    <item>androidx.health.permission.TotalCaloriesBurned.READ</item>
-    <item>androidx.health.permission.TotalCaloriesBurned.WRITE</item>
+    <item>androidx.health.permission.BloodPressure.READ</item>
+    <item>androidx.health.permission.BloodPressure.WRITE</item>
+    <item>androidx.health.permission.BodyFat.READ</item>
+    <item>androidx.health.permission.BodyFat.WRITE</item>
+    <item>androidx.health.permission.HeartRate.READ</item>
+    <item>androidx.health.permission.HeartRate.WRITE</item>
+    <item>androidx.health.permission.OxygenSaturation.READ</item>
+    <item>androidx.health.permission.OxygenSaturation.WRITE</item>
   </array>
 </resources>

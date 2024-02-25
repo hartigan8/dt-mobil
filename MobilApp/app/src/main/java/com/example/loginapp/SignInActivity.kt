@@ -49,18 +49,19 @@ class SignInActivity : AppCompatActivity() {
                 Thread {
                     try {
 
+                        val flag = true;
                         val response = client.newCall(request).execute()
                         val responseBody = response.body?.string()
                         runOnUiThread {
 
                             if (response.isSuccessful) {
                                 // Handle successful response
-                                Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
+//                                Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
                                 val data = JSONObject(responseBody)
                                 val token = data.getString("access_token")
                                 val dbHelper = DatabaseHelper(this)
                                 dbHelper.saveToken(email, token)
-                                if (dbHelper.checkUser(email, password, token)) {
+                                if (/*dbHelper.checkUser(email, token)*/flag) {
                                     // User is valid, navigate to the main activity
                                     val mainIntent = Intent(this, MainActivity::class.java)
                                     mainIntent.putExtra("USER_TOKEN", token)
