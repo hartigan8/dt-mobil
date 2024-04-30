@@ -52,7 +52,7 @@ class SignInActivity : AppCompatActivity() {
                 )
                 
                 val request = Request.Builder()
-                    .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/auth/login")
+                    .url("https://deudthealthcare.eastus.cloudapp.azure.com/auth/login")
                     .post(requestBody)
                     .build()
 

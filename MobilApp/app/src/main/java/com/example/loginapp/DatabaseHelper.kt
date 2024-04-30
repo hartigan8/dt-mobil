@@ -4,9 +4,7 @@ package com.example.loginapp
 import android.annotation.SuppressLint
 import android.content.ContentValues
 import android.content.Context
-import android.database.Cursor
 import android.database.sqlite.SQLiteDatabase
-import android.database.sqlite.SQLiteException
 import android.database.sqlite.SQLiteOpenHelper
 import java.util.*
 
@@ -17,7 +15,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     // create table sql query
     private val CREATE_USER_TABLE = ("CREATE TABLE " + TABLE_USER + "("
             + COLUMN_USER_ID + " INTEGER PRIMARY KEY AUTOINCREMENT," + COLUMN_USER_NAME + " TEXT," + COLUMN_USER_SURNAME + " TEXT,"
-            + COLUMN_USER_EMAIL + " TEXT," + COLUMN_USER_PHONENUMBER + " TEXT," + COLUMN_USER_PASSWORD + " TEXT," + COLUMN_USER_TOKEN + " TEXT" + ")")
+            + COLUMN_USER_EMAIL + " TEXT," + COLUMN_USER_PHONENUMBER + " TEXT," + COLUMN_USER_PASSWORD + " TEXT," + COLUMN_USER_TOKEN + " TEXT," +COLUMN_USER_SEX + " TEXT,"+COLUMN_USER_HEIGHT + " TEXT,"+COLUMN_USER_BIRTH_DATE +" INTEGER"+")")
 
 
             // drop table sql query
@@ -59,7 +57,7 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
     fun getAllUser(): List<User> {
 
         // array of columns to fetch
-        val columns = arrayOf(COLUMN_USER_ID, COLUMN_USER_EMAIL, COLUMN_USER_SURNAME,COLUMN_USER_PHONENUMBER, COLUMN_USER_NAME, COLUMN_USER_PASSWORD)
+        val columns = arrayOf(COLUMN_USER_ID, COLUMN_USER_EMAIL, COLUMN_USER_SURNAME,COLUMN_USER_PHONENUMBER, COLUMN_USER_NAME, COLUMN_USER_PASSWORD, COLUMN_USER_SEX, COLUMN_USER_HEIGHT, COLUMN_USER_BIRTH_DATE)
 
         // sorting orders
         val sortOrder = "$COLUMN_USER_NAME ASC"
@@ -84,7 +82,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
                     phonenumber = cursor.getString(cursor.getColumnIndex(COLUMN_USER_PHONENUMBER)),
                     email = cursor.getString(cursor.getColumnIndex(COLUMN_USER_EMAIL)),
                     password = cursor.getString(cursor.getColumnIndex(COLUMN_USER_PASSWORD)),
-
+                    sex = cursor.getString(cursor.getColumnIndex(COLUMN_USER_SEX)),
+                    height = cursor.getString(cursor.getColumnIndex(COLUMN_USER_HEIGHT)).toInt(),
+                    birthdate = cursor.getString(cursor.getColumnIndex(COLUMN_USER_BIRTH_DATE)).toLong()
                 )
 
                 userList.add(user)
@@ -107,6 +107,10 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         values.put(COLUMN_USER_EMAIL, user.email)
         values.put(COLUMN_USER_PASSWORD, user.password)
         values.put(COLUMN_USER_TOKEN, token)
+        values.put(COLUMN_USER_SEX, user.sex)
+        values.put(COLUMN_USER_HEIGHT, user.height)
+        values.put(COLUMN_USER_BIRTH_DATE, user.birthdate)
+
         // Inserting Row
         db.insert(TABLE_USER, null, values)
         db.close()
@@ -122,7 +126,9 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         values.put(COLUMN_USER_PHONENUMBER, user.phonenumber)
         values.put(COLUMN_USER_EMAIL, user.email)
         values.put(COLUMN_USER_PASSWORD, user.password)
-
+        values.put(COLUMN_USER_SEX, user.sex)
+        values.put(COLUMN_USER_HEIGHT, user.height)
+        values.put(COLUMN_USER_BIRTH_DATE, user.birthdate)
 
         // updating row
         db.update(TABLE_USER, values, "$COLUMN_USER_ID = ?",
@@ -232,10 +238,13 @@ class DatabaseHelper(context: Context) : SQLiteOpenHelper(context, DATABASE_NAME
         private val COLUMN_USER_ID = "user_id"
         private val COLUMN_USER_NAME = "user_name"
         private val COLUMN_USER_SURNAME = "user_surname"
-        private val COLUMN_USER_PHONENUMBER = "user_phonenumber"
+        private val COLUMN_USER_PHONENUMBER = "user_phone-number"
         private val COLUMN_USER_EMAIL = "user_email"
         private val COLUMN_USER_PASSWORD = "user_password"
         private val COLUMN_USER_TOKEN = "user_token"
+        private val COLUMN_USER_SEX = "user_sex"
+        private val COLUMN_USER_HEIGHT = "user_height"
+        private val COLUMN_USER_BIRTH_DATE = "user_birthdate"
 
     }
 }

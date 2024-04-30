@@ -1,9 +1,6 @@
 package com.example.loginapp
 
-import io.jsonwebtoken.Jwts
-import io.jsonwebtoken.SignatureAlgorithm
-import io.jsonwebtoken.security.Keys
-import java.util.Date
+import java.math.BigInteger
 
 // model class
 data class User(
@@ -12,5 +9,9 @@ data class User(
     val surname: String,
     val phonenumber: String,
     val email: String,
-    val password: String
+    val password: String,
+    val sex: String,
+    val height: Int,
+    val birthdate: Long
+
 )
