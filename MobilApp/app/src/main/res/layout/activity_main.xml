@@ -16,6 +16,49 @@
       app:layout_constraintBottom_toBottomOf="@id/stepsEditText"
       app:layout_constraintStart_toStartOf="parent" />
 
+
+  <TextView
+      android:id="@+id/userIdTextView"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="userId "
+      android:textSize="18sp"
+      android:textStyle="bold"
+      app:layout_constraintBottom_toBottomOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintHorizontal_bias="0.512"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent"
+      app:layout_constraintVertical_bias="0.458" />
+
+  <TextView
+      android:id="@+id/WaterAverageTextView"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="Water Average: "
+      android:textSize="18sp"
+      android:textStyle="bold"
+      app:layout_constraintBottom_toBottomOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintHorizontal_bias="0.529"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent"
+      app:layout_constraintVertical_bias="0.499" />
+
+  <TextView
+      android:id="@+id/StepAverageTextView"
+      android:layout_width="wrap_content"
+      android:layout_height="wrap_content"
+      android:text="Step Average: "
+      android:textSize="18sp"
+      android:textStyle="bold"
+      app:layout_constraintBottom_toBottomOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintHorizontal_bias="0.548"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toTopOf="parent"
+      app:layout_constraintVertical_bias="0.535" />
+
   <EditText
       android:id="@+id/stepsEditText"
       android:layout_width="80dp"

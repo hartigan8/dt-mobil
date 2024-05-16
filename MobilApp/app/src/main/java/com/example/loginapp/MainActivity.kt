@@ -2,6 +2,7 @@
 package com.example.loginapp
 
 
+import android.os.Build
 import android.os.Bundle
 import android.widget.TextView
 import android.widget.Toast
@@ -18,15 +19,20 @@ import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
 import androidx.lifecycle.lifecycleScope
 import kotlinx.coroutines.launch
+import okhttp3.Call
+import okhttp3.Callback
 import okhttp3.MediaType.Companion.toMediaTypeOrNull
 import okhttp3.OkHttpClient
 import okhttp3.Request
 import okhttp3.RequestBody
+import okhttp3.Response
+import org.json.JSONObject
 import java.io.IOException
 import java.text.DecimalFormat
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
+import java.util.Base64
 
 /**
  * Main Screen
@@ -51,8 +57,148 @@ class MainActivity : AppCompatActivity() {
                 this, "Health Connect is not available", Toast.LENGTH_SHORT
             ).show()
         }
+        //token
+        //userId textview
+        val token = intent.getStringExtra("USER_TOKEN")
+        val info = decodeToken(token.toString())
+        val jsonInfo = JSONObject(info)
+        val id = jsonInfo.getInt("id")
+
+        fetchlast3daysWaterAverage(token.toString(),id)
+        fetchlast3daysStepAverage(token.toString(),id)
+        fetchUser(id,token.toString())
+        //userId textview
+
+        val userIdTextView = findViewById<TextView>(R.id.userIdTextView)
+        // get user id from token
+
+
+
+    }
+    fun fetchUser(userId: Int, token: String) {
+        val url = "https://deudthealthcare.eastus.cloudapp.azure.com/user/$userId"
+
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $token")
+            .build()
+
+        val client = OkHttpClient()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+                // Handle failure
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                if (!response.isSuccessful || responseBody.isNullOrEmpty()) {
+                    // Handle unsuccessful response
+                    return
+                }
+
+                try {
+                    val jsonObject = JSONObject(responseBody)
+                    val water_goal = jsonObject.getString("stepGoal")
+                    //userId textview
+                    val userIdTextView = findViewById<TextView>(R.id.userIdTextView)
+                    userIdTextView.text = water_goal
+
+                    // Elde edilen bilgileri kullanabilir veya işleyebilirsiniz.
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Handle JSON parsing error
+                }
+            }
+        })
+    }
+    private fun fetchlast3daysStepAverage(token: String, id: Int) {
+        val url = "https://deudthealthcare.eastus.cloudapp.azure.com/step/goal/$id"
+
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $token")
+            .build()
+
+        val client = OkHttpClient()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+                // Handle failure
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                if (!response.isSuccessful || responseBody.isNullOrEmpty()) {
+                    // Handle unsuccessful response
+                    return
+                }
+
+                try {
+                    val jsonObject = JSONObject(responseBody)
+                    val stepAverage = jsonObject.getDouble("average")
+                    val stepAverageTextView = findViewById<TextView>(R.id.StepAverageTextView)
+                    stepAverageTextView.text = DecimalFormat("#.##").format(stepAverage)
+                    // Now you can use waterAverage variable which holds the water average value
+                    // Handle the data as needed
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Handle JSON parsing error
+                }
+            }
+        })
+    }
+    // jwt parse function
+    private fun decodeToken(jwt: String): String {
+        if (Build.VERSION.SDK_INT < Build.VERSION_CODES.O) return "Requires SDK 26"
+        val parts = jwt.split(".")
+        return try {
+            val charset = charset("UTF-8")
+            val header = String(Base64.getUrlDecoder().decode(parts[0].toByteArray(charset)), charset)
+            val payload = String(Base64.getUrlDecoder().decode(parts[1].toByteArray(charset)), charset)
+            "$header"
+            "$payload"
+        } catch (e: Exception) {
+            "Error parsing JWT: $e"
+        }
     }
 
+    private fun fetchlast3daysWaterAverage(token: String, id: Int) {
+        val url = "https://deudthealthcare.eastus.cloudapp.azure.com/water/goal/$id"
+
+        val request = Request.Builder()
+            .url(url)
+            .header("Authorization", "Bearer $token")
+            .build()
+
+        val client = OkHttpClient()
+        client.newCall(request).enqueue(object : Callback {
+            override fun onFailure(call: Call, e: IOException) {
+                e.printStackTrace()
+                // Handle failure
+            }
+
+            override fun onResponse(call: Call, response: Response) {
+                val responseBody = response.body?.string()
+                if (!response.isSuccessful || responseBody.isNullOrEmpty()) {
+                    // Handle unsuccessful response
+                    return
+                }
+
+                try {
+                    val jsonObject = JSONObject(responseBody)
+                    val waterAverage = jsonObject.getDouble("average")
+                    val waterAverageTextView = findViewById<TextView>(R.id.WaterAverageTextView)
+                    waterAverageTextView.text = DecimalFormat("#.##").format(waterAverage)
+                    // Now you can use waterAverage variable which holds the water average value
+                    // Handle the data as needed
+                } catch (e: Exception) {
+                    e.printStackTrace()
+                    // Handle JSON parsing error
+                }
+            }
+        })
+    }
     private fun checkPermissionsAndRun() {
         // 1
         val client = HealthConnectClient.getOrCreate(this)
