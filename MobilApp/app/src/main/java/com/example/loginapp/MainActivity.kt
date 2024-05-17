@@ -99,10 +99,13 @@ class MainActivity : AppCompatActivity() {
 
                 try {
                     val jsonObject = JSONObject(responseBody)
-                    val water_goal = jsonObject.getString("stepGoal")
-                    //userId textview
-                    val userIdTextView = findViewById<TextView>(R.id.userIdTextView)
-                    userIdTextView.text = water_goal
+                    val step_goal = jsonObject.getString("stepGoal")
+                    val stepGoal = findViewById<TextView>(R.id.StepGoal)
+                    stepGoal.text = step_goal
+
+                    val water_goal = jsonObject.getString("waterGoal")
+                    val waterGoal = findViewById<TextView>(R.id.WaterGoal)
+                    waterGoal.text = water_goal
 
                     // Elde edilen bilgileri kullanabilir veya işleyebilirsiniz.
                 } catch (e: Exception) {
@@ -343,8 +346,8 @@ class MainActivity : AppCompatActivity() {
                 val bloodPressureRecordRequest = ReadRecordsRequest(BloodPressureRecord::class, timeRangeFilter)
                 val bloodPressure = client.readRecords(bloodPressureRecordRequest).records
                 val a  = 1;
-                val OxygenTextView = findViewById<TextView>(R.id.oxygenvalue)
-                OxygenTextView.text = bloodPressure .toString()
+                //val OxygenTextView = findViewById<TextView>(R.id.oxygenvalue)
+                //OxygenTextView.text = bloodPressure .toString()
                 sendToAzureFunctionBloodPresure(a.toDouble(), startOfDay.toEpochSecond().toInt(),azurename)
 
 
