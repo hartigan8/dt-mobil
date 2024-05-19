@@ -51,6 +51,7 @@ dependencies {
     androidTestImplementation ("androidx.test.ext:junit:1.1.3")
     androidTestImplementation ("androidx.test.espresso:espresso-core:3.4.0")
 
+
     // SplashScreen compat library
     implementation ("androidx.core:core-splashscreen:1.0.0")
     // TUTORIAL DEPENDENCIES HERE
@@ -66,5 +67,6 @@ dependencies {
     androidTestImplementation("androidx.test.ext:junit:1.1.5")
     androidTestImplementation("androidx.test.espresso:espresso-core:3.5.1")
     implementation ("androidx.health:health-connect-client:1.0.0-alpha03")
+    implementation ("com.github.PhilJay:MPAndroidChart:v3.1.0")
 
 }

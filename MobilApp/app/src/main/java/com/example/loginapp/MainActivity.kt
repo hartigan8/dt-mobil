@@ -1,11 +1,17 @@
 
 package com.example.loginapp
 
-
+import android.graphics.Color
+import com.github.mikephil.charting.charts.PieChart
+import com.github.mikephil.charting.components.Description
+import com.github.mikephil.charting.data.PieData
+import com.github.mikephil.charting.data.PieDataSet
+import com.github.mikephil.charting.data.PieEntry
 import android.os.Build
 import android.os.Bundle
-import android.widget.TextView
+import android.os.SystemClock.sleep
 import android.widget.Toast
+import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
 import androidx.health.connect.client.HealthConnectClient
 import androidx.health.connect.client.HealthConnectClient.Companion.isAvailable
@@ -28,11 +34,11 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
-import java.text.DecimalFormat
 import java.time.Duration
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.Base64
+
 
 /**
  * Main Screen
@@ -41,7 +47,12 @@ import java.util.Base64
 
 class MainActivity : AppCompatActivity() {
 
-
+    private lateinit var waterPieChart: PieChart
+    private lateinit var stepPieChart: PieChart
+    private  var waterLast3days: Int = 0
+    private  var waterGoalValue: Int = 0
+    private  var stepLast3days: Int = 0
+    private var stepGoalValue: Int = 0
     override fun onCreate(savedInstanceState: Bundle?) {
         // Switch to AppTheme for displaying the activity
         setTheme(R.style.AppTheme)
@@ -57,8 +68,8 @@ class MainActivity : AppCompatActivity() {
                 this, "Health Connect is not available", Toast.LENGTH_SHORT
             ).show()
         }
-        //token
-        //userId textview
+
+
         val token = intent.getStringExtra("USER_TOKEN")
         val info = decodeToken(token.toString())
         val jsonInfo = JSONObject(info)
@@ -67,13 +78,73 @@ class MainActivity : AppCompatActivity() {
         fetchlast3daysWaterAverage(token.toString(),id)
         fetchlast3daysStepAverage(token.toString(),id)
         fetchUser(id,token.toString())
-        //userId textview
 
-        val userIdTextView = findViewById<TextView>(R.id.userIdTextView)
-        // get user id from token
+        sleep(1000)
+        waterPieChart = findViewById(R.id.waterGoalChart)
+        stepPieChart = findViewById(R.id.stepGoalChart)
+        setupPieChart(waterPieChart)
+        loadPieChartData(waterPieChart,waterLast3days,waterGoalValue,"Water Consumption")
+        setupPieChart(stepPieChart)
+        loadPieChartData(stepPieChart,stepLast3days,stepGoalValue,"Step Count")
 
 
 
+
+    }
+    private fun showPopup(title: String, value: Int, remainingValue: String) {
+        val builder = AlertDialog.Builder(this)
+        builder.setTitle("Steps Info")
+        builder.setMessage("Completed $title: $value\nRemaining $title: $remainingValue")
+        builder.setPositiveButton("OK") { dialog, _ ->
+            dialog.dismiss()
+        }
+
+        val dialog = builder.create()
+        dialog.show()
+    }
+
+    private fun setupPieChart(pieChart: PieChart) {
+        //description
+        val description = Description()
+        description.text = "Goal Progress"
+        pieChart.description = description
+        pieChart.isRotationEnabled = false
+        pieChart.setEntryLabelColor(Color.BLACK)
+        pieChart.setEntryLabelTextSize(12f)
+
+    }
+
+    private fun loadPieChartData(pieChart: PieChart, last3DayAverageData: Int, goalData: Int, title: String) {
+        val remainingSteps = goalData - last3DayAverageData
+
+        val percentage = last3DayAverageData.toFloat() / goalData
+
+        val startColor = Color.RED
+        val endColor = Color.GREEN
+        val color = interpolateColor(startColor, endColor, percentage)
+
+        val entries = listOf(
+            PieEntry(last3DayAverageData.toFloat(), "Completed $title"),
+            PieEntry(remainingSteps.toFloat(), "Remaining $title")
+        )
+
+        val dataSet = PieDataSet(entries, "")
+        dataSet.colors = listOf(color, Color.LTGRAY)
+        val data = PieData(dataSet)
+        data.setDrawValues(true)
+        data.setValueTextSize(12f)
+        data.setValueTextColor(Color.BLACK)
+
+        pieChart.data = data
+        pieChart.invalidate()
+    }
+
+    private fun interpolateColor(startColor: Int, endColor: Int, factor: Float): Int {
+        val inverseFactor = 1 - factor
+        val r = Color.red(startColor) * inverseFactor + Color.red(endColor) * factor
+        val g = Color.green(startColor) * inverseFactor + Color.green(endColor) * factor
+        val b = Color.blue(startColor) * inverseFactor + Color.blue(endColor) * factor
+        return Color.rgb(r.toInt(), g.toInt(), b.toInt())
     }
     fun fetchUser(userId: Int, token: String) {
         val url = "https://deudthealthcare.eastus.cloudapp.azure.com/user/$userId"
@@ -100,12 +171,12 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val jsonObject = JSONObject(responseBody)
                     val step_goal = jsonObject.getString("stepGoal")
-                    val stepGoal = findViewById<TextView>(R.id.StepGoal)
-                    stepGoal.text = step_goal
+
+                    stepGoalValue = step_goal.toInt()
 
                     val water_goal = jsonObject.getString("waterGoal")
-                    val waterGoal = findViewById<TextView>(R.id.WaterGoal)
-                    waterGoal.text = water_goal
+
+                    waterGoalValue = water_goal.toInt()
 
                     // Elde edilen bilgileri kullanabilir veya işleyebilirsiniz.
                 } catch (e: Exception) {
@@ -140,8 +211,8 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val jsonObject = JSONObject(responseBody)
                     val stepAverage = jsonObject.getDouble("average")
-                    val stepAverageTextView = findViewById<TextView>(R.id.StepAverageTextView)
-                    stepAverageTextView.text = DecimalFormat("#.##").format(stepAverage)
+
+                    stepLast3days = stepAverage.toInt()
                     // Now you can use waterAverage variable which holds the water average value
                     // Handle the data as needed
                 } catch (e: Exception) {
@@ -191,8 +262,8 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val jsonObject = JSONObject(responseBody)
                     val waterAverage = jsonObject.getDouble("average")
-                    val waterAverageTextView = findViewById<TextView>(R.id.WaterAverageTextView)
-                    waterAverageTextView.text = DecimalFormat("#.##").format(waterAverage)
+
+                    waterLast3days = waterAverage.toInt()
                     // Now you can use waterAverage variable which holds the water average value
                     // Handle the data as needed
                 } catch (e: Exception) {

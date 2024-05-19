@@ -8,131 +8,54 @@
     tools:context="com.example.loginapp.MainActivity">
 
 
-  <TextView
-      android:id="@+id/userIdTextView"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:text="userId "
-      android:textSize="18sp"
-      android:textStyle="bold"
+  <com.github.mikephil.charting.charts.PieChart
+      android:id="@+id/waterGoalChart"
+      android:layout_width="286dp"
+      android:layout_height="250dp"
+      app:layout_constraintBottom_toBottomOf="parent"
       app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintHorizontal_bias="0.503"
       app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent" />
+      app:layout_constraintTop_toBottomOf="@+id/WaterGoalTextView"
+      app:layout_constraintVertical_bias="0.023" />
+
+  <com.github.mikephil.charting.charts.PieChart
+      android:id="@+id/stepGoalChart"
+      android:layout_width="286dp"
+      android:layout_height="250dp"
+      app:layout_constraintBottom_toBottomOf="parent"
+      app:layout_constraintEnd_toEndOf="parent"
+      app:layout_constraintHorizontal_bias="0.449"
+      app:layout_constraintStart_toStartOf="parent"
+      app:layout_constraintTop_toBottomOf="@+id/StepGoalTextView"
+      app:layout_constraintVertical_bias="0.4" />
 
   <TextView
       android:id="@+id/WaterGoalTextView"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:text="Water Average: "
+      android:text="Water Average"
       android:textSize="18sp"
       android:textStyle="bold"
       app:layout_constraintBottom_toBottomOf="parent"
       app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.067"
+      app:layout_constraintHorizontal_bias="0.44"
       app:layout_constraintStart_toStartOf="parent"
       app:layout_constraintTop_toTopOf="parent"
       app:layout_constraintVertical_bias="0.054" />
 
   <TextView
-      android:id="@+id/kesirTextView"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:text="_______"
-      android:textSize="18sp"
-      android:textStyle="bold"
-      app:layout_constraintBottom_toBottomOf="parent"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.498"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent"
-      app:layout_constraintVertical_bias="0.197" />
-
-  <TextView
-      android:id="@+id/kesir2TextView"
-      android:layout_width="wrap_content"
-      android:layout_height="wrap_content"
-      android:text="_______"
-      android:textSize="18sp"
-      android:textStyle="bold"
-      app:layout_constraintBottom_toBottomOf="parent"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.501"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent"
-      app:layout_constraintVertical_bias="0.57" />
-
-  <TextView
-      android:id="@+id/WaterAverageTextView"
-      android:layout_width="107dp"
-      android:layout_height="27dp"
-      android:gravity="center"
-      android:text="-----"
-      android:textSize="18sp"
-      android:textStyle="bold"
-      app:layout_constraintBottom_toBottomOf="parent"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.492"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent"
-      app:layout_constraintVertical_bias="0.177" />
-
-  <TextView
-      android:id="@+id/WaterGoal"
-      android:layout_width="98dp"
-      android:layout_height="24dp"
-      android:gravity="center"
-      android:text="-----"
-      android:textSize="18sp"
-      android:textStyle="bold"
-      app:layout_constraintBottom_toBottomOf="parent"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.492"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent"
-      app:layout_constraintVertical_bias="0.244" />
-
-  <TextView
-      android:id="@+id/StepGoal"
-      android:layout_width="107dp"
-      android:layout_height="21dp"
-      android:gravity="center"
-      android:text="-----"
-      android:textSize="18sp"
-      android:textStyle="bold"
-      app:layout_constraintBottom_toBottomOf="parent"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.498"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent"
-      app:layout_constraintVertical_bias="0.617" />
-
-  <TextView
       android:id="@+id/StepGoalTextView"
       android:layout_width="wrap_content"
       android:layout_height="wrap_content"
-      android:text="Step Average: "
+      android:text="Step Average"
       android:textSize="18sp"
       android:textStyle="bold"
       app:layout_constraintBottom_toBottomOf="parent"
       app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.065"
+      app:layout_constraintHorizontal_bias="0.463"
       app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent"
-      app:layout_constraintVertical_bias="0.423" />
-
-  <TextView
-      android:id="@+id/StepAverageTextView"
-      android:layout_width="106dp"
-      android:layout_height="27dp"
-      android:gravity="center"
-      android:text="-----"
-      android:textSize="18sp"
-      android:textStyle="bold"
-      app:layout_constraintBottom_toBottomOf="parent"
-      app:layout_constraintEnd_toEndOf="parent"
-      app:layout_constraintHorizontal_bias="0.498"
-      app:layout_constraintStart_toStartOf="parent"
-      app:layout_constraintTop_toTopOf="parent"
-      app:layout_constraintVertical_bias="0.553" />
+      app:layout_constraintTop_toBottomOf="@+id/waterGoalChart"
+      app:layout_constraintVertical_bias="0.12" />
 
 </androidx.constraintlayout.widget.ConstraintLayout>
