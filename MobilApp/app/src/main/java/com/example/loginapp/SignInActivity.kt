@@ -29,6 +29,7 @@ class SignInActivity : AppCompatActivity() {
 
         binding.wifiCredentialBtn.setOnClickListener {
             val intent = Intent(this, WifiCredentialActivity::class.java)
+            val mainIntent = Intent(this, MainActivity::class.java)
             startActivity(intent)
         }
 
@@ -56,12 +57,14 @@ class SignInActivity : AppCompatActivity() {
                     .post(requestBody)
                     .build()
 
+
                 Thread {
                     try {
 
                         val flag = true;
                         val response = client.newCall(request).execute()
                         val responseBody = response.body?.string()
+
                         runOnUiThread {
 
                             if (response.isSuccessful) {
@@ -69,8 +72,8 @@ class SignInActivity : AppCompatActivity() {
 //                                Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
                                 val data = JSONObject(responseBody)
                                 val token = data.getString("access_token")
-                                val dbHelper = DatabaseHelper(this)
-                                dbHelper.saveToken(email, token)
+//                                val dbHelper = DatabaseHelper(this)
+//                                dbHelper.saveToken(email, token)
                                 if (/*dbHelper.checkUser(email, token)*/flag) {
                                     // User is valid, navigate to the main activity
                                     val mainIntent = Intent(this, MainActivity::class.java)

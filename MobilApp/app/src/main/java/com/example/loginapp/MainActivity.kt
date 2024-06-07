@@ -1,6 +1,7 @@
 
 package com.example.loginapp
 
+import android.annotation.SuppressLint
 import android.graphics.Color
 import com.github.mikephil.charting.charts.PieChart
 import com.github.mikephil.charting.components.Description
@@ -9,7 +10,6 @@ import com.github.mikephil.charting.data.PieDataSet
 import com.github.mikephil.charting.data.PieEntry
 import android.os.Build
 import android.os.Bundle
-import android.os.SystemClock.sleep
 import android.widget.Toast
 import androidx.appcompat.app.AlertDialog
 import androidx.appcompat.app.AppCompatActivity
@@ -20,6 +20,7 @@ import androidx.health.connect.client.records.BloodPressureRecord
 import androidx.health.connect.client.records.BodyFatRecord
 import androidx.health.connect.client.records.HeartRateRecord
 import androidx.health.connect.client.records.OxygenSaturationRecord
+import androidx.health.connect.client.records.SleepSessionRecord
 import androidx.health.connect.client.records.StepsRecord
 import androidx.health.connect.client.request.ReadRecordsRequest
 import androidx.health.connect.client.time.TimeRangeFilter
@@ -34,10 +35,13 @@ import okhttp3.RequestBody
 import okhttp3.Response
 import org.json.JSONObject
 import java.io.IOException
+import java.lang.Thread.sleep
 import java.time.Duration
+import java.time.Instant
 import java.time.ZonedDateTime
 import java.time.temporal.ChronoUnit
 import java.util.Base64
+import kotlin.math.abs
 
 
 /**
@@ -262,8 +266,10 @@ class MainActivity : AppCompatActivity() {
                 try {
                     val jsonObject = JSONObject(responseBody)
                     val waterAverage = jsonObject.getDouble("average")
+                    println(waterAverage)
 
                     waterLast3days = waterAverage.toInt()
+                    println(waterLast3days)
                     // Now you can use waterAverage variable which holds the water average value
                     // Handle the data as needed
                 } catch (e: Exception) {
@@ -289,6 +295,8 @@ class MainActivity : AppCompatActivity() {
             Permission.createReadPermission(HeartRateRecord::class),
             Permission.createWritePermission(OxygenSaturationRecord::class),
             Permission.createReadPermission(OxygenSaturationRecord::class),
+            Permission.createWritePermission(SleepSessionRecord::class),
+            Permission.createReadPermission(SleepSessionRecord::class),
         )
 
         // 3
@@ -349,6 +357,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
+    @SuppressLint("SuspiciousIndentation")
     private suspend fun readAggregatedData(client: HealthConnectClient) {
         var azurename = ""
         val today = ZonedDateTime.now()
@@ -362,10 +371,10 @@ class MainActivity : AppCompatActivity() {
         val currentDate = today.toString()
         val previousDay = dbDayStepHelper.getLatestDay()
 
-        val previousZonedDateTime = ZonedDateTime.parse(previousDay)
-        val previousDayOfMonth = previousZonedDateTime.dayOfMonth
-        //val previousDayOfMonth1 = 15
-            val differenceDays = dayOfMonth-previousDayOfMonth
+//        val previousZonedDateTime = ZonedDateTime.parse(previousDay)
+//        val previousDayOfMonth = previousZonedDateTime.dayOfMonth
+        val previousDayOfMonth1 = 5
+        val differenceDays = abs(dayOfMonth - previousDayOfMonth1)
 
             if (differenceDays == 0 )
             {
@@ -375,6 +384,7 @@ class MainActivity : AppCompatActivity() {
                     today.toLocalDateTime()
                 )
                 val endOfDay = startOfDay.plusDays(1).minusSeconds(1)
+
                 // 1
                 azurename =  "step"
                 val stepsRecordRequest = ReadRecordsRequest(StepsRecord::class, timeRangeFilter)
@@ -415,11 +425,23 @@ class MainActivity : AppCompatActivity() {
                 azurename = "bloodPressure"
                 //4 farklı verisi var ona göre almak gerekiyor kısa bir yolunu bul
                 val bloodPressureRecordRequest = ReadRecordsRequest(BloodPressureRecord::class, timeRangeFilter)
-                val bloodPressure = client.readRecords(bloodPressureRecordRequest).records
-                val a  = 1;
-                //val OxygenTextView = findViewById<TextView>(R.id.oxygenvalue)
-                //OxygenTextView.text = bloodPressure .toString()
-                sendToAzureFunctionBloodPresure(a.toDouble(), startOfDay.toEpochSecond().toInt(),azurename)
+                val bloodPressureRecordsResponse = client.readRecords(bloodPressureRecordRequest)//BPM_AVG
+                val bloodPressureRecordsList: List<BloodPressureRecord> = bloodPressureRecordsResponse.records
+                val allbloodPressureRecords: MutableList<BloodPressureRecord> = mutableListOf()
+                if (bloodPressureRecordsList.isNotEmpty()) {
+                    allbloodPressureRecords.addAll(bloodPressureRecordsList)
+
+                    for (bloodPressureRecord in allbloodPressureRecords) {
+                        val systolic = bloodPressureRecord.systolic
+                        val diastolic = bloodPressureRecord.diastolic
+                        val bodyPosition = bloodPressureRecord.bodyPosition
+                        val measurementLocation = bloodPressureRecord.measurementLocation
+                        val time = bloodPressureRecord.time
+                        if (bodyPosition != null && measurementLocation != null) {
+                            sendToAzureFunctionBloodPresure(diastolic.inMillimetersOfMercury,systolic.inMillimetersOfMercury,bodyPosition,measurementLocation, startOfDay.toEpochSecond().toInt(),azurename)
+                        }
+                    }
+                }
 
 
                 //4
@@ -438,18 +460,29 @@ class MainActivity : AppCompatActivity() {
                     .sumOf { it.percentage.value.toDouble() }
                 sendToAzureFunctionOxygen(oxygenSaturationToday,startOfDay.toEpochSecond().toInt(),azurename)
 
+                //6
+                azurename = "sleepSession"
+                val sleepSessionRecordRequest = ReadRecordsRequest(SleepSessionRecord::class, timeRangeFilter)
+                val sleepSessionToday = client.readRecords(sleepSessionRecordRequest)
+                val sleepSessionList: List<SleepSessionRecord> = sleepSessionToday.records
+                val allsleepSessionRecords: MutableList<SleepSessionRecord> = mutableListOf()
+                allsleepSessionRecords.addAll(sleepSessionList)
+                allsleepSessionRecords.addAll(sleepSessionList)
+                if (allsleepSessionRecords.isNotEmpty()) {
 
-                //textview
-//                val stepsTextView = findViewById<TextView>(R.id.stepsTodayValue)
-//                stepsTextView.text = numberOfStepsToday.toString()
-//                val heartrateTextView = findViewById<TextView>(R.id.heartrateTodayValue)
-//                heartrateTextView.text = averageHeartRate.toString()
-//                val BodyFatTextView = findViewById<TextView>(R.id.bodyfatvalue)
-//                BodyFatTextView.text = BodyFatdataToday .toString()
-//                val OxygenTextView = findViewById<TextView>(R.id.oxygenvalue)
-//                OxygenTextView.text = OxygenSaturationToday .toString()
+                    val lastsleepSessionRecord: SleepSessionRecord = allsleepSessionRecords.last()
+                    val sleepDuration_startTime: Instant = lastsleepSessionRecord.startTime
+                    val sleepDuration_endTime: Instant = lastsleepSessionRecord.endTime
 
-                //sendToAzureFunction(stepsRecords.toInt(), startOfDay.toEpochSecond().toInt(),endOfDay.toEpochSecond().toInt())
+                    // Convert to epoch seconds
+                    val sleepDuration_startTimeEpoch: Int = sleepDuration_startTime.epochSecond.toInt()
+                    val sleepDuration_endTimeEpoch: Int = sleepDuration_endTime.epochSecond.toInt()
+                    sendToAzureFunctionSleep(sleepDuration_startTimeEpoch,sleepDuration_endTimeEpoch,azurename)
+                } else {
+                    println("No sleep sessions found")
+                }
+
+
             }
             else {
                 for (i in 0 until differenceDays) {
@@ -461,63 +494,114 @@ class MainActivity : AppCompatActivity() {
                         startOfDay.toLocalDateTime(),
                         endOfDay.toLocalDateTime()
                     )
+
+                    //6
+                    azurename = "sleepSession"
+                    val sleepSessionRecordRequest = ReadRecordsRequest(SleepSessionRecord::class, timeRangeFilterDayCloud)
+                    val sleepSessionToday = client.readRecords(sleepSessionRecordRequest)
+                    val sleepSessionList: List<SleepSessionRecord> = sleepSessionToday.records
+                    val allsleepSessionRecords: MutableList<SleepSessionRecord> = mutableListOf()
+                    allsleepSessionRecords.addAll(sleepSessionList)
+                    allsleepSessionRecords.addAll(sleepSessionList)
+                    if (allsleepSessionRecords.isNotEmpty()) {
+
+                        val lastsleepSessionRecord: SleepSessionRecord = allsleepSessionRecords.last()
+                        val sleepDuration_startTime: Instant = lastsleepSessionRecord.startTime
+                        val sleepDuration_endTime: Instant = lastsleepSessionRecord.endTime
+
+                        // Convert to epoch seconds
+                        val sleepDuration_startTimeEpoch: Int = sleepDuration_startTime.epochSecond.toInt()
+                        val sleepDuration_endTimeEpoch: Int = sleepDuration_endTime.epochSecond.toInt()
+                        sendToAzureFunctionSleep(sleepDuration_startTimeEpoch,sleepDuration_endTimeEpoch,azurename)
+                    } else {
+                        println("No sleep sessions found")
+                    }
+
+
                     azurename = "step"
                     val stepsRecordRequest = ReadRecordsRequest(StepsRecord::class, timeRangeFilterDayCloud)
-                    val stepsRecords = client.readRecords(stepsRecordRequest)
-                        .records
-                        .sumOf { it.count }
+                    val stepsRecordsList = client.readRecords(stepsRecordRequest).records
 
-                    sendToAzureFunction(stepsRecords.toInt(), startOfDay.toEpochSecond().toInt(),endOfDay.toEpochSecond().toInt(),azurename)
+                    if (stepsRecordsList.isNotEmpty()) {
+                        val stepsRecords = stepsRecordsList.sumOf { it.count }
+                        sendToAzureFunction(stepsRecords.toInt(), startOfDay.toEpochSecond().toInt(), endOfDay.toEpochSecond().toInt(), azurename)
+                    }
+
 
                     azurename = "bodyFatRate"
                     val bodyFatRecordRequest = ReadRecordsRequest(BodyFatRecord::class, timeRangeFilterDayCloud)
-                    val bodyFatRecords  = client.readRecords(bodyFatRecordRequest)
-                        .records
-                        .sumOf { it.percentage.value.toDouble()}
+                    val bodyFatRecordsList = client.readRecords(bodyFatRecordRequest).records
 
-                    sendToAzureFunctionBodyFat(bodyFatRecords, startOfDay.toEpochSecond().toInt(),azurename)
+                    if (bodyFatRecordsList.isNotEmpty()) {
+                        val bodyFatRecords = bodyFatRecordsList.sumOf { it.percentage.value.toDouble() }
+                        sendToAzureFunctionBodyFat(bodyFatRecords, startOfDay.toEpochSecond().toInt(), azurename)
+                    }
+
 
                     azurename = "oxygenSaturation"
                     val oxygenSaturationRecordRequest = ReadRecordsRequest(OxygenSaturationRecord::class, timeRangeFilterDayCloud)
-                    val oxygenSaturationRecords  = client.readRecords(oxygenSaturationRecordRequest)
-                        .records
-                        .sumOf { it.percentage.value.toDouble() }
+                    val oxygenSaturationRecordsList = client.readRecords(oxygenSaturationRecordRequest).records
 
-                    sendToAzureFunctionOxygen(oxygenSaturationRecords, startOfDay.toEpochSecond().toInt(),azurename)
+                    if (oxygenSaturationRecordsList.isNotEmpty()) {
+                        val oxygenSaturationRecords = oxygenSaturationRecordsList.sumOf { it.percentage.value.toDouble() }
+                        sendToAzureFunctionOxygen(oxygenSaturationRecords, startOfDay.toEpochSecond().toInt(), azurename)
+                    }
+
+
 
                     azurename = "heartRate"
                     val heartRateRecordRequest = ReadRecordsRequest(HeartRateRecord::class, timeRangeFilterDayCloud)
                     val heartRateRecordsResponse = client.readRecords(heartRateRecordRequest)//BPM_AVG
                     val heartRateRecordsList: List<HeartRateRecord> = heartRateRecordsResponse.records
                     val allHeartRateRecords: MutableList<HeartRateRecord> = mutableListOf()
-                    allHeartRateRecords.addAll(heartRateRecordsList)
-                    val lastHeartRateRecord: HeartRateRecord = allHeartRateRecords.last()
-                    val beatsPerMinuteList: MutableList<Long> = mutableListOf()
 
-                    for (heartRateRecord in allHeartRateRecords) {
-                        for (sample in heartRateRecord.samples) {
-                            beatsPerMinuteList.add(sample.beatsPerMinute)
+                    if (heartRateRecordsList.isNotEmpty()) {
+                        allHeartRateRecords.addAll(heartRateRecordsList)
+                        val lastHeartRateRecord: HeartRateRecord = allHeartRateRecords.last()
+
+                        val beatsPerMinuteList: MutableList<Long> = mutableListOf()
+                        for (heartRateRecord in allHeartRateRecords) {
+                            for (sample in heartRateRecord.samples) {
+                                beatsPerMinuteList.add(sample.beatsPerMinute)
+                            }
+                        }
+                        val minBeatsPerMinute: Long? = beatsPerMinuteList.minOrNull()//min
+                        val maxBeatsPerMinute: Long? = beatsPerMinuteList.maxOrNull()//max
+                        val averageBeatsPerMinute: Double = beatsPerMinuteList.average()//avg
+
+                        val beatsPerMinute: Long = lastHeartRateRecord.samples.sumOf { it.beatsPerMinute }//count
+
+                        if (minBeatsPerMinute != null && maxBeatsPerMinute != null && averageBeatsPerMinute != null && beatsPerMinute != null) {
+                            sendToAzureFunctionHeartRate(minBeatsPerMinute.toInt(),maxBeatsPerMinute.toInt(),averageBeatsPerMinute.toInt(),beatsPerMinute.toInt(), startOfDay.toEpochSecond().toInt(),endOfDay.toEpochSecond().toInt(),azurename)
                         }
                     }
-                    val minBeatsPerMinute: Long? = beatsPerMinuteList.minOrNull()//min
-                    val maxBeatsPerMinute: Long? = beatsPerMinuteList.maxOrNull()//max
-                    val averageBeatsPerMinute: Double = beatsPerMinuteList.average()//avg
 
-                    val beatsPerMinute: Long = lastHeartRateRecord.samples.sumOf { it.beatsPerMinute }//count
 
-                    if (minBeatsPerMinute != null && maxBeatsPerMinute != null && averageBeatsPerMinute != null && beatsPerMinute != null) {
-                        sendToAzureFunctionHeartRate(minBeatsPerMinute.toInt(),maxBeatsPerMinute.toInt(),averageBeatsPerMinute.toInt(),beatsPerMinute.toInt(), startOfDay.toEpochSecond().toInt(),endOfDay.toEpochSecond().toInt(),azurename)
-                    }
+
+
 
                     azurename = "bloodPressure"
                     //4 farklı verisi var ona göre almak gerekiyor kısa bir yolunu bul
                     val bloodPressureRecordRequest = ReadRecordsRequest(BloodPressureRecord::class, timeRangeFilterDayCloud)
-                    val bloodPressure = client.readRecords(bloodPressureRecordRequest).records
+                    val bloodPressureRecordsResponse = client.readRecords(bloodPressureRecordRequest)//BPM_AVG
+                    val bloodPressureRecordsList: List<BloodPressureRecord> = bloodPressureRecordsResponse.records
+                    val allbloodPressureRecords: MutableList<BloodPressureRecord> = mutableListOf()
+                    if (bloodPressureRecordsList.isNotEmpty()) {
+                        allbloodPressureRecords.addAll(bloodPressureRecordsList)
+
+                        for (bloodPressureRecord in allbloodPressureRecords) {
+                            val systolic = bloodPressureRecord.systolic
+                            val diastolic = bloodPressureRecord.diastolic
+                            val bodyPosition = bloodPressureRecord.bodyPosition
+                            val measurementLocation = bloodPressureRecord.measurementLocation
+                            val time = bloodPressureRecord.time
+                            if (bodyPosition != null && measurementLocation != null) {
+                                sendToAzureFunctionBloodPresure(diastolic.inMillimetersOfMercury,systolic.inMillimetersOfMercury,bodyPosition,measurementLocation, startOfDay.toEpochSecond().toInt(),azurename)
+                            }
+                        }
+                    }
 
 
-//                    sendToAzureFunctionBloodPresure(a.toDouble(), startOfDay.toEpochSecond().toInt(),azurename)
-
-                //dbDayStepHelper.insertStepData(currentDate, stepsRecords.toInt())
             }
 
 
@@ -537,7 +621,7 @@ class MainActivity : AppCompatActivity() {
             )
 
             val request = Request.Builder()
-                .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/$name")
+                .url("https://deudthealthcare.eastus.cloudapp.azure.com/$name")
                 .post(requestBody)
                 .addHeader("Authorization", "Bearer $token")
                 .build()
@@ -549,11 +633,11 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             if (response.isSuccessful) {
                                 // Handle successful response
-                                Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "Step Başarılı", Toast.LENGTH_SHORT).show()
 
                             } else {
                                 // Handle unsuccessful response
-                                Toast.makeText(this, "Giriş başarısız", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "Step başarısız", Toast.LENGTH_SHORT).show()
                             }
                         }
                     } catch (e: IOException) {
@@ -568,7 +652,7 @@ class MainActivity : AppCompatActivity() {
 
     }
 
-    private fun sendToAzureFunctionBloodPresure(data: Double , time: Int, name:String ) {
+    private fun sendToAzureFunctionBloodPresure(diastolic: Double ,systolic: Double,bodyPosition: String,measurementLocation: String,time: Int, name:String ) {
 
         val httpclient = OkHttpClient()
         val token = intent.getStringExtra("USER_TOKEN").toString()
@@ -577,11 +661,11 @@ class MainActivity : AppCompatActivity() {
 
             val requestBody = RequestBody.create(
                 "application/json; charset=utf-8".toMediaTypeOrNull(),
-                """{"bodyFatRate":$data,"time":$time}"""
+                """{"diastolic":$diastolic,"systolic":$systolic,"time":$time,"bodyPosition":"$bodyPosition","measurementLocation":"$measurementLocation"}"""
             )
 
             val request = Request.Builder()
-                .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/$name")
+                .url("https://deudthealthcare.eastus.cloudapp.azure.com/$name")
                 .post(requestBody)
                 .addHeader("Authorization", "Bearer $token")
                 .build()
@@ -593,11 +677,56 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         if (response.isSuccessful) {
                             // Handle successful response
-                            Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "BloodPresure Başarılı", Toast.LENGTH_SHORT).show()
 
                         } else {
                             // Handle unsuccessful response
-                            Toast.makeText(this, "Giriş başarısız", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "BloodPresure başarısız", Toast.LENGTH_SHORT).show()
+                        }
+                    }
+                } catch (e: IOException) {
+                    runOnUiThread {
+                        Toast.makeText(
+                            this,
+                            "İstek gönderilirken hata oluştu: $e",
+                            Toast.LENGTH_SHORT
+                        ).show()
+                    }
+                }
+            }.start()
+
+        }
+    }
+    private fun sendToAzureFunctionSleep(start: Int, end: Int, name:String ) {
+
+        val httpclient = OkHttpClient()
+        val token = intent.getStringExtra("USER_TOKEN").toString()
+
+        if (token != null) {
+
+            val requestBody = RequestBody.create(
+                "application/json; charset=utf-8".toMediaTypeOrNull(),
+                """{"startTime":$start,"endTime":$end}"""
+            )
+
+            val request = Request.Builder()
+                .url("https://deudthealthcare.eastus.cloudapp.azure.com/$name")
+                .post(requestBody)
+                .addHeader("Authorization", "Bearer $token")
+                .build()
+
+
+            Thread {
+                try {
+                    val response = httpclient.newCall(request).execute()
+                    runOnUiThread {
+                        if (response.isSuccessful) {
+                            // Handle successful response
+                            Toast.makeText(this, "Sleep Başarılı", Toast.LENGTH_SHORT).show()
+
+                        } else {
+                            // Handle unsuccessful response
+                            Toast.makeText(this, "Sleep başarısız", Toast.LENGTH_SHORT).show()
                         }
                     }
                 } catch (e: IOException) {
@@ -627,7 +756,7 @@ class MainActivity : AppCompatActivity() {
             )
 
             val request = Request.Builder()
-                .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/$name")
+                .url("https://deudthealthcare.eastus.cloudapp.azure.com/$name")
                 .post(requestBody)
                 .addHeader("Authorization", "Bearer $token")
                 .build()
@@ -639,11 +768,11 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         if (response.isSuccessful) {
                             // Handle successful response
-                            Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Bodyfat Başarılı", Toast.LENGTH_SHORT).show()
 
                         } else {
                             // Handle unsuccessful response
-                            Toast.makeText(this, "Giriş başarısız", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "Bodyfat başarısız", Toast.LENGTH_SHORT).show()
                         }
                     }
                 } catch (e: IOException) {
@@ -672,7 +801,7 @@ class MainActivity : AppCompatActivity() {
                 )
 
                 val request = Request.Builder()
-                    .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/$name")
+                    .url("https://deudthealthcare.eastus.cloudapp.azure.com/$name")
                     .post(requestBody)
                     .addHeader("Authorization", "Bearer $token")
                     .build()
@@ -684,11 +813,11 @@ class MainActivity : AppCompatActivity() {
                         runOnUiThread {
                             if (response.isSuccessful) {
                                 // Handle successful response
-                                Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "Oxygen Başarılı", Toast.LENGTH_SHORT).show()
 
                             } else {
                                 // Handle unsuccessful response
-                                Toast.makeText(this, "Giriş başarısız", Toast.LENGTH_SHORT).show()
+                                Toast.makeText(this, "Oxygen başarısız", Toast.LENGTH_SHORT).show()
                             }
                         }
                     } catch (e: IOException) {
@@ -713,7 +842,7 @@ class MainActivity : AppCompatActivity() {
             )
 
             val request = Request.Builder()
-                .url("https://deudtchronicillness.eastus2.cloudapp.azure.com/$name")
+                .url("https://deudthealthcare.eastus.cloudapp.azure.com/$name")
                 .post(requestBody)
                 .addHeader("Authorization", "Bearer $token")
                 .build()
@@ -725,11 +854,11 @@ class MainActivity : AppCompatActivity() {
                     runOnUiThread {
                         if (response.isSuccessful) {
                             // Handle successful response
-                            Toast.makeText(this, "Giriş Başarılı", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "HeartRate Başarılı", Toast.LENGTH_SHORT).show()
 
                         } else {
                             // Handle unsuccessful response
-                            Toast.makeText(this, "Giriş başarısız", Toast.LENGTH_SHORT).show()
+                            Toast.makeText(this, "HeartRate başarısız", Toast.LENGTH_SHORT).show()
                         }
                     }
                 } catch (e: IOException) {
